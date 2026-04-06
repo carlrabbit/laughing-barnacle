@@ -1,6 +1,6 @@
 ---
 mode: agent
-description: Scaffold a new feature with a service, model, and xUnit tests.
+description: Scaffold a new feature with a service, model, and TUnit tests.
 ---
 
 Create a new feature called `${input:featureName}` in the LaughingBarnacle console application.

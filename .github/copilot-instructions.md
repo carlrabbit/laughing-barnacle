@@ -5,7 +5,7 @@
 This is a .NET 10 console application. The solution is organized into:
 
 - `src/LaughingBarnacle` – the main console application
-- `tests/LaughingBarnacle.Tests` – xUnit tests for the application
+- `tests/LaughingBarnacle.Tests` – TUnit tests for the application
 
 ## Build, Test, and Run
 
@@ -44,9 +44,10 @@ dotnet run --project src/LaughingBarnacle
 
 ## Testing
 
-- Use **xUnit** for all tests.
+- Use **TUnit** for all tests (backed by Microsoft Testing Platform).
 - Use **Moq** for mocking dependencies.
 - Follow the **Arrange / Act / Assert** pattern.
+- All TUnit assertions return `Task` and **must be awaited** (`await Assert.That(...).IsEqualTo(...)`).
 - Name tests using the convention: `MethodName_StateUnderTest_ExpectedBehavior`.
 - Place unit tests in `tests/LaughingBarnacle.Tests/`.
 

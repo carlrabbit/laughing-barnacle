@@ -6,17 +6,17 @@ applyTo: "tests/**/*.cs"
 
 ## Framework and Libraries
 
-- Use **xUnit** for all tests.
+- Use **TUnit** for all tests (backed by Microsoft Testing Platform).
 - Use **Moq** (or **NSubstitute**) for mocking.
-- Use **FluentAssertions** for expressive assertions (`result.Should().Be(...)`).
+- Use TUnit's built-in `Assert.That(...).IsEqualTo(...)` / `IsNotNull()` / `IsTrue()` etc. for assertions. All assertions return `Task` and **must be awaited**.
 
 ## Test Structure
 
 Follow the **Arrange / Act / Assert (AAA)** pattern with a blank line separating each section:
 
 ```csharp
-[Fact]
-public void Process_WithValidInput_ReturnsExpectedResult()
+[Test]
+public async Task Process_WithValidInput_ReturnsExpectedResult()
 {
     // Arrange
     var sut = new MyService();
@@ -25,7 +25,7 @@ public void Process_WithValidInput_ReturnsExpectedResult()
     var result = sut.Process("input");
 
     // Assert
-    result.Should().Be("expected");
+    await Assert.That(result).IsEqualTo("expected");
 }
 ```
 
@@ -41,8 +41,8 @@ Examples:
 ## Test Classes
 
 - One test class per production class or feature.
-- Use `IClassFixture<T>` or `ICollectionFixture<T>` for expensive shared state.
-- Mark slow or integration tests with `[Trait("Category", "Integration")]` so they can be filtered.
+- Use `[ClassDataSource<T>]` or `[MethodDataSource]` for parameterised tests.
+- Mark slow or integration tests with `[Property("Category", "Integration")]` so they can be filtered.
 
 ## What to Test
 
