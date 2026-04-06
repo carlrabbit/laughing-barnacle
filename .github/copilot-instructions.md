@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-This is a .NET 10 ASP.NET Core Web API project. The solution follows Clean Architecture principles and is organized into:
+This is a .NET 10 console application. The solution is organized into:
 
-- `src/LaughingBarnacle` – the main Web API application
+- `src/LaughingBarnacle` – the main console application
 - `tests/LaughingBarnacle.Tests` – xUnit tests for the application
 
 ## Build, Test, and Run
@@ -19,7 +19,7 @@ dotnet build
 # Run all tests
 dotnet test
 
-# Run the API
+# Run the application
 dotnet run --project src/LaughingBarnacle
 ```
 
@@ -38,16 +38,9 @@ dotnet run --project src/LaughingBarnacle
 
 ## Dependency Injection
 
-- Register services in `Program.cs` using the built-in DI container.
+- Register services in `Program.cs` using the built-in DI container (`Microsoft.Extensions.Hosting`).
 - Prefer constructor injection over service locator pattern.
-- Scope services appropriately: singleton for stateless services, scoped for per-request services, transient for lightweight services.
-
-## API Design
-
-- Follow **RESTful conventions**: use plural nouns for resource names, HTTP verbs for actions.
-- Return appropriate HTTP status codes (`200 OK`, `201 Created`, `400 Bad Request`, `404 Not Found`, etc.).
-- Use `IResult` / minimal API patterns for endpoint handlers.
-- Validate inputs using data annotations or FluentValidation; never trust user input.
+- Scope services appropriately: singleton for stateless services, scoped for per-operation services, transient for lightweight services.
 
 ## Testing
 
@@ -56,7 +49,6 @@ dotnet run --project src/LaughingBarnacle
 - Follow the **Arrange / Act / Assert** pattern.
 - Name tests using the convention: `MethodName_StateUnderTest_ExpectedBehavior`.
 - Place unit tests in `tests/LaughingBarnacle.Tests/`.
-- Use `WebApplicationFactory<Program>` for integration tests against the API.
 
 ## Security
 

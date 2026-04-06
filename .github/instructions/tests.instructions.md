@@ -9,7 +9,6 @@ applyTo: "tests/**/*.cs"
 - Use **xUnit** for all tests.
 - Use **Moq** (or **NSubstitute**) for mocking.
 - Use **FluentAssertions** for expressive assertions (`result.Should().Be(...)`).
-- Use **Microsoft.AspNetCore.Mvc.Testing** (`WebApplicationFactory<Program>`) for integration tests.
 
 ## Test Structure
 
@@ -17,16 +16,16 @@ Follow the **Arrange / Act / Assert (AAA)** pattern with a blank line separating
 
 ```csharp
 [Fact]
-public async Task GetWeatherForecast_WhenCalled_ReturnsOkWithForecasts()
+public void Process_WithValidInput_ReturnsExpectedResult()
 {
     // Arrange
-    var client = _factory.CreateClient();
+    var sut = new MyService();
 
     // Act
-    var response = await client.GetAsync("/weatherforecast");
+    var result = sut.Process("input");
 
     // Assert
-    response.StatusCode.Should().Be(HttpStatusCode.OK);
+    result.Should().Be("expected");
 }
 ```
 
@@ -42,14 +41,14 @@ Examples:
 ## Test Classes
 
 - One test class per production class or feature.
-- Use `IClassFixture<T>` or `ICollectionFixture<T>` for expensive shared state (e.g., `WebApplicationFactory`).
+- Use `IClassFixture<T>` or `ICollectionFixture<T>` for expensive shared state.
 - Mark slow or integration tests with `[Trait("Category", "Integration")]` so they can be filtered.
 
 ## What to Test
 
 - Test **behaviour**, not implementation details.
 - Cover the **happy path** and meaningful **edge cases** (null inputs, empty collections, boundary values).
-- Do **not** test framework code (e.g., built-in serialization) unless your code wraps it with custom logic.
+- Do **not** test framework code unless your code wraps it with custom logic.
 
 ## Mocking
 
