@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LaughingBarnacle/LaughingBarnacle.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LaughingBarnacle.Tests/LaughingBarnacle.Tests.csproj" />
+  </Folder>
+</Solution>

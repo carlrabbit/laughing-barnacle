@@ -1,0 +1,14 @@
+{
+  "github.copilot.chat.codeGeneration.instructions": [
+    {
+      "file": ".github/copilot-instructions.md"
+    }
+  ],
+  "github.copilot.chat.testGeneration.instructions": [
+    {
+      "file": ".github/instructions/tests.instructions.md"
+    }
+  ],
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "github.copilot.chat.experimental.agentDesktop.enabled": true
+}
