@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton<JsonStorageService>();
+builder.Services.AddScoped<JsonStorageService>();
 
 var app = builder.Build();
 

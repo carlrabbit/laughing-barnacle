@@ -50,6 +50,7 @@
 </div>
 
 @code {
+    private const string DefaultFileName = "edited.json";
     private bool isSaving;
     private bool editorInitialized;
 
@@ -72,7 +73,7 @@
             string content = await JS.InvokeAsync<string>("monacoInterop.getValue");
             JsonStorage.JsonContent = content;
 
-            string fileName = JsonStorage.FileName ?? "edited.json";
+            string fileName = JsonStorage.FileName ?? DefaultFileName;
             await JS.InvokeVoidAsync("monacoInterop.downloadFile", fileName, content);
         }
         finally
