@@ -1,0 +1,102 @@
+@page "/editor"
+@rendermode InteractiveServer
+@inject JsonStorageService JsonStorage
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<PageTitle>JSON Editor</PageTitle>
+
+<div class="editor-page">
+    <div class="editor-toolbar">
+        <div class="toolbar-left">
+            <button class="btn btn-icon" @onclick="GoBack" title="Back to Upload">← Back</button>
+            <span class="toolbar-title">
+                @if (JsonStorage.FileName is not null)
+                {
+                    <span class="file-name">@JsonStorage.FileName</span>
+                }
+                else
+                {
+                    <span>JSON Editor</span>
+                }
+            </span>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-primary" @onclick="SaveAndDownloadAsync" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span>Saving…</span>
+                }
+                else
+                {
+                    <span>💾 Save &amp; Download</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    @if (JsonStorage.JsonContent is null)
+    {
+        <div class="no-content">
+            <p>No JSON file loaded.</p>
+            <a class="btn btn-primary" href="/">Upload a file first</a>
+        </div>
+    }
+    else
+    {
+        <div id="monaco-editor-container"></div>
+    }
+</div>
+
+@code {
+    private const string DefaultFileName = "edited.json";
+    private bool isSaving;
+    private bool editorInitialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && JsonStorage.JsonContent is not null && !editorInitialized)
+        {
+            editorInitialized = true;
+            await JS.InvokeVoidAsync("monacoInterop.initialize", "monaco-editor-container", JsonStorage.JsonContent);
+        }
+    }
+
+    private async Task SaveAndDownloadAsync()
+    {
+        isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            string content = await JS.InvokeAsync<string>("monacoInterop.getValue");
+            JsonStorage.JsonContent = content;
+
+            string fileName = JsonStorage.FileName ?? DefaultFileName;
+            await JS.InvokeVoidAsync("monacoInterop.downloadFile", fileName, content);
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("monacoInterop.dispose");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit was disconnected; safe to ignore
+        }
+    }
+}

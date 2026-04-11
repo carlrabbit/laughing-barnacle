@@ -1,0 +1,81 @@
+@page "/"
+@rendermode InteractiveServer
+@inject JsonStorageService JsonStorage
+@inject NavigationManager Navigation
+
+<PageTitle>Upload JSON</PageTitle>
+
+<div class="upload-page">
+    <h1>JSON File Editor</h1>
+    <p>Upload a JSON file to view and edit it in the browser.</p>
+
+    <div class="upload-area">
+        <div class="upload-icon">📂</div>
+        <p class="upload-hint">Click to select a file or drag &amp; drop</p>
+        <InputFile OnChange="@HandleFileSelectedAsync" accept=".json,application/json" class="file-input" />
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">⚠ @errorMessage</div>
+    }
+
+    @if (loadedFileName is not null)
+    {
+        <div class="alert alert-success">✔ <strong>@loadedFileName</strong> loaded successfully!</div>
+        <button class="btn btn-primary" @onclick="OpenEditor">
+            Open in Editor →
+        </button>
+    }
+</div>
+
+@code {
+    private string? loadedFileName;
+    private string? errorMessage;
+
+    protected override void OnInitialized()
+    {
+        loadedFileName = JsonStorage.FileName;
+    }
+
+    private async Task HandleFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        errorMessage = null;
+        loadedFileName = null;
+
+        IBrowserFile file = e.File;
+
+        if (!file.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase) &&
+            file.ContentType != "application/json")
+        {
+            errorMessage = "Please select a valid JSON file (.json).";
+            return;
+        }
+
+        try
+        {
+            using StreamReader reader = new(file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
+            string content = await reader.ReadToEndAsync();
+
+            // Validate that the content is valid JSON
+            System.Text.Json.JsonDocument.Parse(content).Dispose();
+
+            JsonStorage.JsonContent = content;
+            JsonStorage.FileName = file.Name;
+            loadedFileName = file.Name;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            errorMessage = "The selected file does not contain valid JSON.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error reading file: {ex.Message}";
+        }
+    }
+
+    private void OpenEditor()
+    {
+        Navigation.NavigateTo("/editor");
+    }
+}
