@@ -1,0 +1,53 @@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+@rendermode InteractiveServer
+
+<div class="json-editor-wrapper">
+    <div class="editor-toolbar">
+        <button class="btn btn-primary" @onclick="SaveAndDownloadAsync">
+            💾 Save &amp; Download
+        </button>
+        <span class="file-label">@FileName</span>
+    </div>
+    <div id="@_editorId" class="monaco-container"></div>
+</div>
+
+@code {
+    private const string DefaultDownloadFileName = "output.json";
+
+    [Parameter, EditorRequired] public string JsonContent { get; set; } = string.Empty;
+    [Parameter] public string? FileName { get; set; }
+
+    private readonly string _editorId = $"monaco-{Guid.NewGuid():N}";
+    private bool _initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_initialized)
+        {
+            _initialized = true;
+            await JS.InvokeVoidAsync("jsonEditorInterop.initialize", _editorId, JsonContent);
+        }
+    }
+
+    private async Task SaveAndDownloadAsync()
+    {
+        string downloadName = FileName ?? DefaultDownloadFileName;
+        await JS.InvokeVoidAsync("jsonEditorInterop.downloadContent", downloadName);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_initialized)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("jsonEditorInterop.dispose");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected – safe to ignore.
+            }
+        }
+    }
+}

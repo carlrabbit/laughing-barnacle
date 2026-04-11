@@ -1,0 +1,28 @@
+.layout {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    background-color: #252526;
+    padding: 0.75rem 2rem;
+    border-bottom: 1px solid #3e3e42;
+}
+
+nav a {
+    color: #569cd6;
+    text-decoration: none;
+    margin-right: 1.5rem;
+    font-size: 0.95rem;
+}
+
+nav a:hover {
+    color: #9cdcfe;
+    text-decoration: underline;
+}
+
+main {
+    flex: 1;
+    padding: 2rem;
+}

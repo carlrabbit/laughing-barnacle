@@ -1,0 +1,18 @@
+@page "/editor"
+@rendermode InteractiveServer
+@inject JsonStorageService JsonStorage
+@inject NavigationManager Navigation
+
+<PageTitle>JSON Editor</PageTitle>
+
+@if (string.IsNullOrEmpty(JsonStorage.JsonContent))
+{
+    <div class="no-content">
+        <p>No JSON file loaded. <a href="/">Upload a file</a> first.</p>
+    </div>
+}
+else
+{
+    <h1>JSON Editor – <span class="filename">@JsonStorage.FileName</span></h1>
+    <JsonEditorComponent JsonContent="@JsonStorage.JsonContent" FileName="@JsonStorage.FileName" />
+}
