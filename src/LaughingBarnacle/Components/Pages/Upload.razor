@@ -1,0 +1,73 @@
+@page "/"
+@rendermode InteractiveServer
+@inject JsonStorageService JsonStorage
+@inject NavigationManager Navigation
+
+<PageTitle>Upload JSON</PageTitle>
+
+<h1>Upload JSON File</h1>
+
+<div class="upload-card">
+    <p class="hint">Select a <strong>.json</strong> file (max 10 MB) to open it in the editor.</p>
+
+    <InputFile OnChange="HandleFileSelectedAsync" accept=".json" class="file-input" />
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="error-message" role="alert">@errorMessage</div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="loading-indicator">Loading…</div>
+    }
+</div>
+
+@code {
+    private const long MaxFileSizeBytes = 10 * 1024 * 1024; // 10 MB
+
+    private string? errorMessage;
+    private bool isLoading;
+
+    private async Task HandleFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        errorMessage = null;
+        isLoading = true;
+
+        try
+        {
+            IBrowserFile file = e.File;
+
+            if (!file.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                errorMessage = "Please select a valid .json file.";
+                return;
+            }
+
+            using Stream stream = file.OpenReadStream(maxAllowedSize: MaxFileSizeBytes);
+            using var reader = new StreamReader(stream);
+            string content = await reader.ReadToEndAsync();
+
+            try
+            {
+                System.Text.Json.JsonDocument.Parse(content);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                errorMessage = "The selected file does not contain valid JSON.";
+                return;
+            }
+
+            JsonStorage.Store(content, file.Name);
+            Navigation.NavigateTo("/editor");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error reading file: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
