@@ -1,0 +1,138 @@
+@using System.Text.Json
+@inject IJSRuntime JS
+
+<div class="json-editor">
+    <div class="editor-toolbar">
+        @if (_isEditing)
+        {
+            <button class="toolbar-btn primary" @onclick="ApplyEditAsync">✓ Apply</button>
+            <button class="toolbar-btn secondary" @onclick="CancelEdit">✕ Cancel</button>
+        }
+        else
+        {
+            <button class="toolbar-btn primary" @onclick="StartEdit">✎ Edit as text</button>
+            <button class="toolbar-btn secondary" @onclick="ExpandAll">⊕ Expand all</button>
+            <button class="toolbar-btn secondary" @onclick="CollapseAll">⊖ Collapse all</button>
+        }
+        <button class="toolbar-btn success" @onclick="DownloadJsonAsync">⬇ Download</button>
+    </div>
+
+    @if (_isEditing)
+    {
+        <textarea class="json-textarea" @bind="_editText" rows="30"></textarea>
+        @if (_parseError != null)
+        {
+            <div class="parse-error">⚠ @_parseError</div>
+        }
+    }
+    else
+    {
+        <div class="json-tree-container">
+            @if (_rootNode != null)
+            {
+                <JsonEditorNode Node="_rootNode" Depth="0" IsLast="true" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? JsonContent { get; set; }
+    [Parameter] public EventCallback<string> JsonContentChanged { get; set; }
+    [Parameter] public string FileName { get; set; } = "output.json";
+
+    private bool _isEditing;
+    private string _editText = "";
+    private string? _parseError;
+    private JsonTreeNode? _rootNode;
+    private string _currentContent = "";
+
+    protected override void OnParametersSet()
+    {
+        var newContent = JsonContent ?? "";
+        if (newContent != _currentContent)
+        {
+            _currentContent = newContent;
+            TryParseJson(_currentContent);
+        }
+    }
+
+    private void TryParseJson(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            _rootNode = null;
+            return;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            _rootNode = JsonTreeNode.FromJsonElement(doc.RootElement);
+            _parseError = null;
+        }
+        catch (JsonException ex)
+        {
+            _parseError = ex.Message;
+        }
+    }
+
+    private void StartEdit()
+    {
+        _editText = FormatJson(_currentContent);
+        _isEditing = true;
+        _parseError = null;
+    }
+
+    private async Task ApplyEditAsync()
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(_editText);
+            _currentContent = _editText;
+            TryParseJson(_currentContent);
+            _isEditing = false;
+            _parseError = null;
+            await JsonContentChanged.InvokeAsync(_currentContent);
+        }
+        catch (JsonException ex)
+        {
+            _parseError = $"Invalid JSON: {ex.Message}";
+        }
+    }
+
+    private void CancelEdit()
+    {
+        _isEditing = false;
+        _parseError = null;
+    }
+
+    private void ExpandAll()
+    {
+        _rootNode?.SetAllCollapsed(false);
+    }
+
+    private void CollapseAll()
+    {
+        _rootNode?.SetAllCollapsed(true);
+    }
+
+    private static string FormatJson(string content)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return content;
+        }
+    }
+
+    private async Task DownloadJsonAsync()
+    {
+        var content = FormatJson(_currentContent);
+        await JS.InvokeVoidAsync("downloadFile", FileName, content);
+    }
+}
