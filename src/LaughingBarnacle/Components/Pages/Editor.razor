@@ -20,15 +20,14 @@ else
             <a href="/" class="back-link">← Upload another file</a>
         </div>
         <JsonEditor JsonContent="@JsonStorage.JsonContent"
-                    JsonContentChanged="OnJsonContentChangedAsync"
+                    JsonContentChanged="OnJsonContentChanged"
                     FileName="@(JsonStorage.FileName ?? "output.json")" />
     </div>
 }
 
 @code {
-    private async Task OnJsonContentChangedAsync(string newContent)
+    private void OnJsonContentChanged(string newContent)
     {
         JsonStorage.JsonContent = newContent;
-        await Task.CompletedTask;
     }
 }
