@@ -36,7 +36,7 @@
                     @if (row.ShowToggle)
                     {
                         <button class="json-toggle" title="@(row.Node!.IsCollapsed ? "Expand" : "Collapse")"
-                                @onclick="@(() => row.Node!.IsCollapsed = !row.Node!.IsCollapsed)">
+                                @onclick="@(() => ToggleNode(row.Node!))">
                             @(row.Node!.IsCollapsed ? "▶" : "▼")
                         </button>
                     }
@@ -56,7 +56,7 @@
                         @if (row.Node!.IsCollapsed && row.Node.Children.Count > 0)
                         {
                             <span class="json-ellipsis"
-                                  @onclick="@(() => row.Node!.IsCollapsed = !row.Node!.IsCollapsed)">&nbsp;…&nbsp;</span>
+                                  @onclick="@(() => ToggleNode(row.Node!))">&nbsp;…&nbsp;</span>
                             <span class="json-punct">@row.CloseBracket</span>
                             @if (!row.IsLast)
                             {
@@ -119,6 +119,7 @@
     private string? _parseError;
     private JsonTreeNode? _rootNode;
     private string _currentContent = "";
+    private List<RenderRow>? _cachedRows;
 
     // ── Row kinds for the flat render list ──────────────────────────────────
     private enum RowKind { Open, Leaf, Close }
@@ -132,16 +133,27 @@
         public string? Key { get; init; }
 
         public string IndentPx => $"{Depth * 1.5}rem";
-        public bool ShowToggle => Kind == RowKind.Open && Node!.Children.Count > 0;
-        public string OpenBracket => Node!.NodeType == JsonNodeType.Object ? "{" : "[";
-        public string CloseBracket => Node!.NodeType == JsonNodeType.Object ? "}" : "]";
+        public bool ShowToggle => Kind == RowKind.Open && Node?.Children.Count > 0;
+        public string OpenBracket => Node?.NodeType == JsonNodeType.Object ? "{" : "[";
+        public string CloseBracket => Node?.NodeType == JsonNodeType.Object ? "}" : "]";
     }
 
     /// <summary>
     /// Flattens the visible portion of the tree into an ordered list of rows
     /// using an explicit stack — no recursive component calls.
+    /// The result is cached and invalidated whenever collapse state changes.
     /// </summary>
-    private IReadOnlyList<RenderRow> GetVisibleRows()
+    private IReadOnlyList<RenderRow> GetVisibleRows() => _cachedRows ??= BuildVisibleRows();
+
+    private void InvalidateRowCache() => _cachedRows = null;
+
+    private void ToggleNode(JsonTreeNode node)
+    {
+        node.IsCollapsed = !node.IsCollapsed;
+        InvalidateRowCache();
+    }
+
+    private List<RenderRow> BuildVisibleRows()
     {
         if (_rootNode == null) return [];
 
@@ -211,6 +223,7 @@
             using var doc = JsonDocument.Parse(content);
             _rootNode = JsonTreeNode.FromJsonElement(doc.RootElement);
             _parseError = null;
+            InvalidateRowCache();
         }
         catch (JsonException ex)
         {
@@ -250,9 +263,17 @@
         _parseError = null;
     }
 
-    private void ExpandAll() => _rootNode?.SetAllCollapsed(false);
+    private void ExpandAll()
+    {
+        _rootNode?.SetAllCollapsed(false);
+        InvalidateRowCache();
+    }
 
-    private void CollapseAll() => _rootNode?.SetAllCollapsed(true);
+    private void CollapseAll()
+    {
+        _rootNode?.SetAllCollapsed(true);
+        InvalidateRowCache();
+    }
 
     private static string FormatJson(string content)
     {
