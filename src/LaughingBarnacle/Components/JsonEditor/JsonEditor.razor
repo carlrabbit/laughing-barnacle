@@ -28,9 +28,82 @@
     else
     {
         <div class="json-tree-container">
-            @if (_rootNode != null)
+            @foreach (var row in GetVisibleRows())
             {
-                <JsonEditorNode Node="_rootNode!" Depth="0" IsLast="true" />
+                <div class="json-line">
+                    <span class="json-indent" style="padding-left: @row.IndentPx"></span>
+
+                    @if (row.ShowToggle)
+                    {
+                        <button class="json-toggle" title="@(row.Node!.IsCollapsed ? "Expand" : "Collapse")"
+                                @onclick="@(() => row.Node!.IsCollapsed = !row.Node!.IsCollapsed)">
+                            @(row.Node!.IsCollapsed ? "▶" : "▼")
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="json-toggle-spacer"></span>
+                    }
+
+                    @if (row.Key != null)
+                    {
+                        <span class="json-key">"@row.Key"</span><span class="json-punct">:&nbsp;</span>
+                    }
+
+                    @if (row.Kind == RowKind.Open)
+                    {
+                        <span class="json-punct">@row.OpenBracket</span>
+                        @if (row.Node!.IsCollapsed && row.Node.Children.Count > 0)
+                        {
+                            <span class="json-ellipsis"
+                                  @onclick="@(() => row.Node!.IsCollapsed = !row.Node!.IsCollapsed)">&nbsp;…&nbsp;</span>
+                            <span class="json-punct">@row.CloseBracket</span>
+                            @if (!row.IsLast)
+                            {
+                                <span class="json-punct">,</span>
+                            }
+                        }
+                        else if (row.Node.Children.Count == 0)
+                        {
+                            <span class="json-punct">@row.CloseBracket</span>
+                            @if (!row.IsLast)
+                            {
+                                <span class="json-punct">,</span>
+                            }
+                        }
+                    }
+                    else if (row.Kind == RowKind.Close)
+                    {
+                        <span class="json-punct">@row.CloseBracket</span>
+                        @if (!row.IsLast)
+                        {
+                            <span class="json-punct">,</span>
+                        }
+                    }
+                    else
+                    {
+                        @if (row.Node!.NodeType == JsonNodeType.String)
+                        {
+                            <span class="json-string">"@row.Node.StringValue"</span>
+                        }
+                        else if (row.Node.NodeType == JsonNodeType.Number)
+                        {
+                            <span class="json-number">@row.Node.StringValue</span>
+                        }
+                        else if (row.Node.NodeType == JsonNodeType.Boolean)
+                        {
+                            <span class="json-boolean">@row.Node.StringValue</span>
+                        }
+                        else
+                        {
+                            <span class="json-null">null</span>
+                        }
+                        @if (!row.IsLast)
+                        {
+                            <span class="json-punct">,</span>
+                        }
+                    }
+                </div>
             }
         </div>
     }
@@ -46,6 +119,74 @@
     private string? _parseError;
     private JsonTreeNode? _rootNode;
     private string _currentContent = "";
+
+    // ── Row kinds for the flat render list ──────────────────────────────────
+    private enum RowKind { Open, Leaf, Close }
+
+    private sealed class RenderRow
+    {
+        public required RowKind Kind { get; init; }
+        public JsonTreeNode? Node { get; init; }
+        public required int Depth { get; init; }
+        public required bool IsLast { get; init; }
+        public string? Key { get; init; }
+
+        public string IndentPx => $"{Depth * 1.5}rem";
+        public bool ShowToggle => Kind == RowKind.Open && Node!.Children.Count > 0;
+        public string OpenBracket => Node!.NodeType == JsonNodeType.Object ? "{" : "[";
+        public string CloseBracket => Node!.NodeType == JsonNodeType.Object ? "}" : "]";
+    }
+
+    /// <summary>
+    /// Flattens the visible portion of the tree into an ordered list of rows
+    /// using an explicit stack — no recursive component calls.
+    /// </summary>
+    private IReadOnlyList<RenderRow> GetVisibleRows()
+    {
+        if (_rootNode == null) return [];
+
+        var rows = new List<RenderRow>();
+        var stack = new Stack<(bool isClose, JsonTreeNode node, int depth, bool isLast)>();
+        stack.Push((false, _rootNode, 0, true));
+
+        while (stack.Count > 0)
+        {
+            var (isClose, node, depth, isLast) = stack.Pop();
+
+            if (isClose)
+            {
+                rows.Add(new RenderRow { Kind = RowKind.Close, Node = node, Depth = depth, IsLast = isLast });
+                continue;
+            }
+
+            bool isCollapsible = node.NodeType is JsonNodeType.Object or JsonNodeType.Array;
+
+            if (!isCollapsible)
+            {
+                rows.Add(new RenderRow { Kind = RowKind.Leaf, Node = node, Depth = depth, IsLast = isLast, Key = node.Key });
+                continue;
+            }
+
+            rows.Add(new RenderRow { Kind = RowKind.Open, Node = node, Depth = depth, IsLast = isLast, Key = node.Key });
+
+            // Collapsed or empty containers render inline — no children to enqueue.
+            if (node.IsCollapsed || node.Children.Count == 0)
+                continue;
+
+            // Push the close-bracket row first so it is emitted after all children (LIFO).
+            stack.Push((true, node, depth, isLast));
+
+            // Push children in reverse order so the first child comes out first.
+            for (int i = node.Children.Count - 1; i >= 0; i--)
+            {
+                stack.Push((false, node.Children[i], depth + 1, i == node.Children.Count - 1));
+            }
+        }
+
+        return rows;
+    }
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
 
     protected override void OnParametersSet()
     {
@@ -77,6 +218,8 @@
         }
     }
 
+    // ── Toolbar actions ──────────────────────────────────────────────────────
+
     private void StartEdit()
     {
         _editText = FormatJson(_currentContent);
@@ -107,15 +250,9 @@
         _parseError = null;
     }
 
-    private void ExpandAll()
-    {
-        _rootNode?.SetAllCollapsed(false);
-    }
+    private void ExpandAll() => _rootNode?.SetAllCollapsed(false);
 
-    private void CollapseAll()
-    {
-        _rootNode?.SetAllCollapsed(true);
-    }
+    private void CollapseAll() => _rootNode?.SetAllCollapsed(true);
 
     private static string FormatJson(string content)
     {
