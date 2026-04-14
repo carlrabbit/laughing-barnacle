@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yaof/replacement-schema.json",
+  "title": "YAOF Replacement Document",
+  "description": "Schema for the YAOF replacement JSON format used to specify content inserted into Open XML documents.",
+  "type": "object",
+  "properties": {
+    "replacements": {
+      "type": "object",
+      "description": "Map of replacement IDs to content blocks. Keys match the ##<id> in {{repl:##<id>}} markers.",
+      "additionalProperties": {
+        "$ref": "#/$defs/contentBlock"
+      }
+    }
+  },
+  "required": ["replacements"],
+  "additionalProperties": false,
+  "$defs": {
+    "contentBlock": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "description": "Ordered list of content items to insert after the marker heading.",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/headerItem" },
+              { "$ref": "#/$defs/paragraphItem" },
+              { "$ref": "#/$defs/imageItem" },
+              { "$ref": "#/$defs/unorderedListItem" },
+              { "$ref": "#/$defs/orderedListItem" }
+            ]
+          }
+        }
+      },
+      "required": ["items"],
+      "additionalProperties": false
+    },
+    "headerItem": {
+      "type": "object",
+      "description": "A heading element. The level is relative to the parent heading in the document.",
+      "properties": {
+        "type": { "const": "header" },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "description": "Relative heading depth (1 = one level deeper than the marker heading)."
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The heading text."
+        }
+      },
+      "required": ["type", "level", "text"],
+      "additionalProperties": false
+    },
+    "paragraphItem": {
+      "type": "object",
+      "description": "A body text paragraph.",
+      "properties": {
+        "type": { "const": "paragraph" },
+        "text": {
+          "type": "string",
+          "description": "The paragraph text."
+        }
+      },
+      "required": ["type", "text"],
+      "additionalProperties": false
+    },
+    "imageItem": {
+      "type": "object",
+      "description": "An image to embed in the document.",
+      "properties": {
+        "type": { "const": "image" },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "File path to the image (JPEG, PNG, GIF, BMP, or TIFF)."
+        },
+        "caption": {
+          "type": "string",
+          "description": "Optional caption text placed below the image."
+        }
+      },
+      "required": ["type", "path"],
+      "additionalProperties": false
+    },
+    "unorderedListItem": {
+      "type": "object",
+      "description": "A bulleted (unordered) list.",
+      "properties": {
+        "type": { "const": "unorderedList" },
+        "items": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "List of bullet point texts."
+        }
+      },
+      "required": ["type", "items"],
+      "additionalProperties": false
+    },
+    "orderedListItem": {
+      "type": "object",
+      "description": "A numbered (ordered) list.",
+      "properties": {
+        "type": { "const": "orderedList" },
+        "items": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "List of numbered item texts."
+        }
+      },
+      "required": ["type", "items"],
+      "additionalProperties": false
+    }
+  }
+}
