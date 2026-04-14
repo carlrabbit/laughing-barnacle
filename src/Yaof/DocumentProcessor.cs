@@ -96,9 +96,11 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
     private static string GetParagraphText(Paragraph paragraph) =>
         string.Concat(paragraph.Descendants<Text>().Select(t => t.Text));
 
+    private static string BuildMarkerText(string id) => $"{{{{repl:##{id}}}}}";
+
     private static void RemoveMarkerFromParagraph(Paragraph paragraph, string id)
     {
-        string markerText = $"{{{{repl:##{ id }}}}}";
+        string markerText = BuildMarkerText(id);
 
         List<Run> runs = paragraph.Elements<Run>().ToList();
         string full = string.Concat(runs.Select(r => string.Concat(r.Elements<Text>().Select(t => t.Text))));
