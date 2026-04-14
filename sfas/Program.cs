@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 
 if (args.Length == 0)
@@ -51,7 +52,7 @@ public static class JsonToMarkdownConverter
 
     private static string BuildTable(JsonElement obj)
     {
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
         sb.AppendLine("|Property|Description|");
         sb.AppendLine("|---|---|");
 
