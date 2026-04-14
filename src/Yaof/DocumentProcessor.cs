@@ -128,13 +128,18 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
     {
         OpenXmlElement insertAfter = anchorParagraph;
 
+        // Use the count of existing inline drawings to seed the unique ID counter so
+        // multiple calls to this method within one document don't produce duplicate IDs.
+        uint drawingId = (uint)(document.MainDocumentPart?.Document?.Body?
+            .Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline>().Count() ?? 0) + 1U;
+
         foreach (ContentItem item in block.Items)
         {
             IEnumerable<OpenXmlElement> elements = item switch
             {
                 HeaderItem h => [CreateHeadingParagraph(h, parentHeadingLevel)],
                 ParagraphItem p => [CreateBodyParagraph(p)],
-                ImageItem img => CreateImageElements(document, img),
+                ImageItem img => CreateImageElements(document, img, ref drawingId),
                 UnorderedListItem ul => CreateListParagraphs(ul.Items, listStyle: "ListBullet"),
                 OrderedListItem ol => CreateListParagraphs(ol.Items, listStyle: "ListNumber"),
                 _ => []
@@ -163,23 +168,30 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
     private static Paragraph CreateBodyParagraph(ParagraphItem paragraph) =>
         new(new Run(new Text(paragraph.Text) { Space = SpaceProcessingModeValues.Preserve }));
 
-    private static IEnumerable<OpenXmlElement> CreateImageElements(
-        WordprocessingDocument document, ImageItem imageItem)
+    private static readonly HashSet<string> SupportedImageExtensions =
+        ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "tif"];
+
+    private static List<OpenXmlElement> CreateImageElements(
+        WordprocessingDocument document, ImageItem imageItem, ref uint drawingId)
     {
         if (!File.Exists(imageItem.Path))
         {
-            yield return CreateBodyParagraph(new ParagraphItem { Text = $"[Image not found: {imageItem.Path}]" });
-            yield break;
+            return [CreateBodyParagraph(new ParagraphItem { Text = $"[Image not found: {imageItem.Path}]" })];
         }
 
         string extension = Path.GetExtension(imageItem.Path).TrimStart('.').ToLowerInvariant();
+        if (!SupportedImageExtensions.Contains(extension))
+            throw new ArgumentException(
+                $"Unsupported image format '.{extension}'. Supported formats: jpg, jpeg, png, gif, bmp, tiff, tif.",
+                nameof(imageItem));
+
         PartTypeInfo partType = extension switch
         {
             "png" => ImagePartType.Png,
             "gif" => ImagePartType.Gif,
             "bmp" => ImagePartType.Bmp,
             "tiff" or "tif" => ImagePartType.Tiff,
-            _ => ImagePartType.Jpeg
+            _ => ImagePartType.Jpeg  // covers "jpg" and "jpeg"
         };
 
         MainDocumentPart mainPart = document.MainDocumentPart
@@ -192,6 +204,7 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
         string relationshipId = mainPart.GetIdOfPart(imagePart);
         const long defaultWidthEmu = 5_400_000L;
         const long defaultHeightEmu = 4_050_000L;
+        uint currentId = drawingId++;
 
         var drawing = new Drawing(
             new DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline(
@@ -206,7 +219,7 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
                 },
                 new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties
                 {
-                    Id = 1U,
+                    Id = currentId,
                     Name = Path.GetFileNameWithoutExtension(imageItem.Path)
                 },
                 new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
@@ -246,14 +259,16 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
                 DistanceFromRight = 0U
             });
 
-        yield return new Paragraph(new Run(drawing));
+        List<OpenXmlElement> result = [new Paragraph(new Run(drawing))];
 
         if (imageItem.Caption is not null)
         {
-            yield return new Paragraph(
+            result.Add(new Paragraph(
                 new ParagraphProperties(new ParagraphStyleId { Val = "Caption" }),
-                new Run(new Text(imageItem.Caption) { Space = SpaceProcessingModeValues.Preserve }));
+                new Run(new Text(imageItem.Caption) { Space = SpaceProcessingModeValues.Preserve })));
         }
+
+        return result;
     }
 
     private static IEnumerable<Paragraph> CreateListParagraphs(
