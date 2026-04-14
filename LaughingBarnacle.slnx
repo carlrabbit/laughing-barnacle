@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/sfas/">
+    <Project Path="sfas/JsonToMarkdown.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/LaughingBarnacle/LaughingBarnacle.csproj" />
   </Folder>

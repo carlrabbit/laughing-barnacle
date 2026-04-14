@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\LaughingBarnacle\LaughingBarnacle.csproj" />
+    <ProjectReference Include="..\..\sfas\JsonToMarkdown.csproj" />
   </ItemGroup>
 
 </Project>
