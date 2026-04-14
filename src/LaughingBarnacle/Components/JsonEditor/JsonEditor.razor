@@ -1,0 +1,296 @@
+@using System.Text.Json
+@inject IJSRuntime JS
+
+<div class="json-editor">
+    <div class="editor-toolbar">
+        @if (_isEditing)
+        {
+            <button class="toolbar-btn primary" @onclick="ApplyEditAsync">✓ Apply</button>
+            <button class="toolbar-btn secondary" @onclick="CancelEdit">✕ Cancel</button>
+        }
+        else
+        {
+            <button class="toolbar-btn primary" @onclick="StartEdit">✎ Edit as text</button>
+            <button class="toolbar-btn secondary" @onclick="ExpandAll">⊕ Expand all</button>
+            <button class="toolbar-btn secondary" @onclick="CollapseAll">⊖ Collapse all</button>
+        }
+        <button class="toolbar-btn success" @onclick="DownloadJsonAsync">⬇ Download</button>
+    </div>
+
+    @if (_isEditing)
+    {
+        <textarea class="json-textarea" @bind="_editText" rows="30"></textarea>
+        @if (_parseError != null)
+        {
+            <div class="parse-error">⚠ @_parseError</div>
+        }
+    }
+    else
+    {
+        <div class="json-tree-container">
+            @foreach (var row in GetVisibleRows())
+            {
+                <div class="json-line">
+                    <span class="json-indent" style="padding-left: @row.IndentPx"></span>
+
+                    @if (row.ShowToggle)
+                    {
+                        <button class="json-toggle" title="@(row.Node!.IsCollapsed ? "Expand" : "Collapse")"
+                                @onclick="@(() => ToggleNode(row.Node!))">
+                            @(row.Node!.IsCollapsed ? "▶" : "▼")
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="json-toggle-spacer"></span>
+                    }
+
+                    @if (row.Key != null)
+                    {
+                        <span class="json-key">"@row.Key"</span><span class="json-punct">:&nbsp;</span>
+                    }
+
+                    @if (row.Kind == RowKind.Open)
+                    {
+                        <span class="json-punct">@row.OpenBracket</span>
+                        @if (row.Node!.IsCollapsed && row.Node.Children.Count > 0)
+                        {
+                            <span class="json-ellipsis"
+                                  @onclick="@(() => ToggleNode(row.Node!))">&nbsp;…&nbsp;</span>
+                            <span class="json-punct">@row.CloseBracket</span>
+                            @if (!row.IsLast)
+                            {
+                                <span class="json-punct">,</span>
+                            }
+                        }
+                        else if (row.Node.Children.Count == 0)
+                        {
+                            <span class="json-punct">@row.CloseBracket</span>
+                            @if (!row.IsLast)
+                            {
+                                <span class="json-punct">,</span>
+                            }
+                        }
+                    }
+                    else if (row.Kind == RowKind.Close)
+                    {
+                        <span class="json-punct">@row.CloseBracket</span>
+                        @if (!row.IsLast)
+                        {
+                            <span class="json-punct">,</span>
+                        }
+                    }
+                    else
+                    {
+                        @if (row.Node!.NodeType == JsonNodeType.String)
+                        {
+                            <span class="json-string">"@row.Node.StringValue"</span>
+                        }
+                        else if (row.Node.NodeType == JsonNodeType.Number)
+                        {
+                            <span class="json-number">@row.Node.StringValue</span>
+                        }
+                        else if (row.Node.NodeType == JsonNodeType.Boolean)
+                        {
+                            <span class="json-boolean">@row.Node.StringValue</span>
+                        }
+                        else
+                        {
+                            <span class="json-null">null</span>
+                        }
+                        @if (!row.IsLast)
+                        {
+                            <span class="json-punct">,</span>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? JsonContent { get; set; }
+    [Parameter] public EventCallback<string> JsonContentChanged { get; set; }
+    [Parameter] public string FileName { get; set; } = "output.json";
+
+    private bool _isEditing;
+    private string _editText = "";
+    private string? _parseError;
+    private JsonTreeNode? _rootNode;
+    private string _currentContent = "";
+    private List<RenderRow>? _cachedRows;
+
+    // ── Row kinds for the flat render list ──────────────────────────────────
+    private enum RowKind { Open, Leaf, Close }
+
+    private sealed class RenderRow
+    {
+        public required RowKind Kind { get; init; }
+        public JsonTreeNode? Node { get; init; }
+        public required int Depth { get; init; }
+        public required bool IsLast { get; init; }
+        public string? Key { get; init; }
+
+        public string IndentPx => $"{Depth * 1.5}rem";
+        public bool ShowToggle => Kind == RowKind.Open && Node?.Children.Count > 0;
+        public string OpenBracket => Node?.NodeType == JsonNodeType.Object ? "{" : "[";
+        public string CloseBracket => Node?.NodeType == JsonNodeType.Object ? "}" : "]";
+    }
+
+    /// <summary>
+    /// Flattens the visible portion of the tree into an ordered list of rows
+    /// using an explicit stack — no recursive component calls.
+    /// The result is cached and invalidated whenever collapse state changes.
+    /// </summary>
+    private IReadOnlyList<RenderRow> GetVisibleRows() => _cachedRows ??= BuildVisibleRows();
+
+    private void InvalidateRowCache() => _cachedRows = null;
+
+    private void ToggleNode(JsonTreeNode node)
+    {
+        node.IsCollapsed = !node.IsCollapsed;
+        InvalidateRowCache();
+    }
+
+    private List<RenderRow> BuildVisibleRows()
+    {
+        if (_rootNode == null) return [];
+
+        var rows = new List<RenderRow>();
+        var stack = new Stack<(bool isClose, JsonTreeNode node, int depth, bool isLast)>();
+        stack.Push((false, _rootNode, 0, true));
+
+        while (stack.Count > 0)
+        {
+            var (isClose, node, depth, isLast) = stack.Pop();
+
+            if (isClose)
+            {
+                rows.Add(new RenderRow { Kind = RowKind.Close, Node = node, Depth = depth, IsLast = isLast });
+                continue;
+            }
+
+            bool isCollapsible = node.NodeType is JsonNodeType.Object or JsonNodeType.Array;
+
+            if (!isCollapsible)
+            {
+                rows.Add(new RenderRow { Kind = RowKind.Leaf, Node = node, Depth = depth, IsLast = isLast, Key = node.Key });
+                continue;
+            }
+
+            rows.Add(new RenderRow { Kind = RowKind.Open, Node = node, Depth = depth, IsLast = isLast, Key = node.Key });
+
+            // Collapsed or empty containers render inline — no children to enqueue.
+            if (node.IsCollapsed || node.Children.Count == 0)
+                continue;
+
+            // Push the close-bracket row first so it is emitted after all children (LIFO).
+            stack.Push((true, node, depth, isLast));
+
+            // Push children in reverse order so the first child comes out first.
+            for (int i = node.Children.Count - 1; i >= 0; i--)
+            {
+                stack.Push((false, node.Children[i], depth + 1, i == node.Children.Count - 1));
+            }
+        }
+
+        return rows;
+    }
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
+
+    protected override void OnParametersSet()
+    {
+        var newContent = JsonContent ?? "";
+        if (newContent != _currentContent)
+        {
+            _currentContent = newContent;
+            TryParseJson(_currentContent);
+        }
+    }
+
+    private void TryParseJson(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            _rootNode = null;
+            return;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            _rootNode = JsonTreeNode.FromJsonElement(doc.RootElement);
+            _parseError = null;
+            InvalidateRowCache();
+        }
+        catch (JsonException ex)
+        {
+            _parseError = ex.Message;
+        }
+    }
+
+    // ── Toolbar actions ──────────────────────────────────────────────────────
+
+    private void StartEdit()
+    {
+        _editText = FormatJson(_currentContent);
+        _isEditing = true;
+        _parseError = null;
+    }
+
+    private async Task ApplyEditAsync()
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(_editText);
+            _currentContent = _editText;
+            TryParseJson(_currentContent);
+            _isEditing = false;
+            _parseError = null;
+            await JsonContentChanged.InvokeAsync(_currentContent);
+        }
+        catch (JsonException ex)
+        {
+            _parseError = $"Invalid JSON: {ex.Message}";
+        }
+    }
+
+    private void CancelEdit()
+    {
+        _isEditing = false;
+        _parseError = null;
+    }
+
+    private void ExpandAll()
+    {
+        _rootNode?.SetAllCollapsed(false);
+        InvalidateRowCache();
+    }
+
+    private void CollapseAll()
+    {
+        _rootNode?.SetAllCollapsed(true);
+        InvalidateRowCache();
+    }
+
+    private static string FormatJson(string content)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return content;
+        }
+    }
+
+    private async Task DownloadJsonAsync()
+    {
+        var content = FormatJson(_currentContent);
+        await JS.InvokeVoidAsync("downloadFile", FileName, content);
+    }
+}

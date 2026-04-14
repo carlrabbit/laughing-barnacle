@@ -1,0 +1,314 @@
+/* ──────────────────────────────────────────────
+   Global reset & base
+────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+}
+
+h1 {
+    color: #cdd6f4;
+    font-size: 1.6rem;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+p {
+    margin: 0 0 1rem;
+    color: #a6adc8;
+}
+
+/* ──────────────────────────────────────────────
+   Upload page
+────────────────────────────────────────────── */
+.upload-page {
+    max-width: 600px;
+}
+
+.subtitle {
+    color: #a6adc8;
+    font-size: 0.95rem;
+}
+
+.upload-card {
+    background: #181825;
+    border: 1px solid #313244;
+    border-radius: 10px;
+    padding: 2rem;
+    margin-top: 1.5rem;
+}
+
+.upload-label {
+    display: block;
+    margin-bottom: 0.75rem;
+    color: #a6adc8;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.file-input {
+    width: 100%;
+    padding: 0.6rem;
+    background: #313244;
+    border: 1px dashed #585b70;
+    border-radius: 6px;
+    color: #cdd6f4;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+}
+
+.file-input:hover {
+    border-color: #89b4fa;
+}
+
+.status-text {
+    color: #a6adc8;
+    font-style: italic;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.error-message {
+    background: #452028;
+    color: #f38ba8;
+    border: 1px solid #f38ba8;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+/* ──────────────────────────────────────────────
+   Editor page
+────────────────────────────────────────────── */
+.editor-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 3.25rem - 4rem); /* minus header and padding */
+    min-height: 0;
+}
+
+.editor-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.editor-page-header h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #cdd6f4;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+}
+
+.back-link {
+    color: #89b4fa;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.back-link:hover {
+    color: #cba6f7;
+}
+
+.no-content {
+    text-align: center;
+    padding: 5rem 2rem;
+    color: #a6adc8;
+}
+
+.no-content p {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+/* ──────────────────────────────────────────────
+   JSON Editor component
+────────────────────────────────────────────── */
+.json-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+    border: 1px solid #3d3d3d;
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Toolbar */
+.editor-toolbar {
+    background: #252526;
+    padding: 0.4rem 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid #3d3d3d;
+    flex-shrink: 0;
+}
+
+.toolbar-btn {
+    padding: 0.3rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: opacity 0.15s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+    opacity: 0.85;
+}
+
+.toolbar-btn:active {
+    transform: scale(0.97);
+}
+
+.toolbar-btn.primary {
+    background: #0e639c;
+    color: #ffffff;
+}
+
+.toolbar-btn.secondary {
+    background: #3c3c3c;
+    color: #cccccc;
+}
+
+.toolbar-btn.success {
+    background: #23d18b;
+    color: #1e1e1e;
+}
+
+/* Text edit mode */
+.json-textarea {
+    flex: 1;
+    display: block;
+    width: 100%;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border: none;
+    padding: 0.75rem 1rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    min-height: 400px;
+}
+
+.parse-error {
+    background: #5a1d1d;
+    color: #f48771;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border-top: 1px solid #5f2120;
+    flex-shrink: 0;
+}
+
+/* Tree view */
+.json-tree-container {
+    flex: 1;
+    overflow: auto;
+    padding: 0.5rem 0;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.88rem;
+    line-height: 1.75;
+}
+
+/* ──────────────────────────────────────────────
+   JSON tree node
+────────────────────────────────────────────── */
+.json-line {
+    display: flex;
+    align-items: baseline;
+    white-space: pre;
+    padding: 0 0.5rem;
+    min-height: 1.75em;
+}
+
+.json-line:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.json-indent {
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.json-toggle {
+    background: none;
+    border: none;
+    color: #858585;
+    cursor: pointer;
+    padding: 0;
+    width: 1.2em;
+    font-size: 0.7em;
+    flex-shrink: 0;
+    line-height: 1;
+    vertical-align: middle;
+    transition: color 0.15s;
+}
+
+.json-toggle:hover {
+    color: #cccccc;
+}
+
+.json-toggle-spacer {
+    display: inline-block;
+    width: 1.2em;
+    flex-shrink: 0;
+}
+
+/* Syntax colours – VS Code Dark+ inspired */
+.json-key {
+    color: #9cdcfe;
+}
+
+.json-punct {
+    color: #d4d4d4;
+}
+
+.json-string {
+    color: #ce9178;
+}
+
+.json-number {
+    color: #b5cea8;
+}
+
+.json-boolean {
+    color: #569cd6;
+}
+
+.json-null {
+    color: #569cd6;
+    font-style: italic;
+}
+
+.json-ellipsis {
+    color: #858585;
+    cursor: pointer;
+    font-style: italic;
+    transition: color 0.15s;
+}
+
+.json-ellipsis:hover {
+    color: #cccccc;
+}

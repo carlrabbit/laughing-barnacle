@@ -1,0 +1,14 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <header class="app-header">
+        <nav class="app-nav">
+            <span class="app-title">JSON Editor</span>
+            <NavLink href="/" Match="NavLinkMatch.All" class="nav-link">Upload</NavLink>
+            <NavLink href="/editor" class="nav-link">Editor</NavLink>
+        </nav>
+    </header>
+    <main>
+        @Body
+    </main>
+</div>

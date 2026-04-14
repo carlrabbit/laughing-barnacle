@@ -1,0 +1,64 @@
+@page "/"
+@rendermode InteractiveServer
+@inject JsonStorageService JsonStorage
+@inject NavigationManager NavigationManager
+
+<PageTitle>JSON Editor – Upload</PageTitle>
+
+<div class="upload-page">
+    <h1>JSON File Editor</h1>
+    <p class="subtitle">Upload a JSON file to view, fold, and edit it in the browser.</p>
+
+    <div class="upload-card">
+        <label class="upload-label">Select a JSON file</label>
+        <InputFile OnChange="OnFileSelectedAsync" accept=".json" class="file-input" />
+
+        @if (_isLoading)
+        {
+            <p class="status-text">Loading…</p>
+        }
+
+        @if (_error != null)
+        {
+            <div class="error-message">⚠ @_error</div>
+        }
+    </div>
+</div>
+
+@code {
+    private string? _error;
+    private bool _isLoading;
+
+    private async Task OnFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        _isLoading = true;
+
+        try
+        {
+            var file = e.File;
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var reader = new StreamReader(stream);
+            var content = await reader.ReadToEndAsync();
+
+            // Validate JSON before storing
+            System.Text.Json.JsonDocument.Parse(content).Dispose();
+
+            JsonStorage.JsonContent = content;
+            JsonStorage.FileName = file.Name;
+            NavigationManager.NavigateTo("/editor");
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            _error = "The selected file is not valid JSON. Please choose a valid JSON file.";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error reading file: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
