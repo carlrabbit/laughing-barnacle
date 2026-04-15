@@ -4,8 +4,10 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/LaughingBarnacle/LaughingBarnacle.csproj" />
+    <Project Path="src/Yaof/Yaof.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/LaughingBarnacle.Tests/LaughingBarnacle.Tests.csproj" />
+    <Project Path="tests/Yaof.Tests/Yaof.Tests.csproj" />
   </Folder>
 </Solution>
