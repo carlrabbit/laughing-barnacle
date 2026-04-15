@@ -39,15 +39,16 @@ public class SchemaValidatorTests
               "replacements": {
                 "section1": {
                   "items": [
-                    { "type": "header", "level": 1, "text": "Title" },
-                    { "type": "paragraph", "text": "Body text" },
-                    { "type": "image", "path": "photo.png", "caption": "Fig 1" },
-                    { "type": "unorderedList", "items": ["Apple", "Banana"] },
-                    { "type": "orderedList", "items": ["First", "Second"] }
-                  ]
-                }
-              }
-            }
+                     { "type": "header", "level": 1, "text": "Title" },
+                     { "type": "paragraph", "text": "Body text" },
+                     { "type": "image", "path": "photo.png", "caption": "Fig 1" },
+                     { "type": "unorderedList", "items": ["Apple", "Banana"] },
+                     { "type": "orderedList", "items": ["First", "Second"] },
+                     { "type": "table", "header": ["Col A", "Col B"], "rows": [["1", "2"]], "tableStyle": "TableGrid" }
+                   ]
+                 }
+               }
+             }
             """;
 
         // Act
@@ -147,5 +148,47 @@ public class SchemaValidatorTests
 
         // Assert
         await Assert.That(result.IsValid).IsFalse();
+    }
+
+    [Test]
+    public async Task Validate_WithTableWithoutRows_ReturnsFailure()
+    {
+        // Arrange
+        string json = """
+            {
+              "replacements": {
+                "s": {
+                  "items": [{ "type": "table", "header": ["Col A"] }]
+                }
+              }
+            }
+            """;
+
+        // Act
+        SchemaValidationResult result = _sut.Validate(json);
+
+        // Assert
+        await Assert.That(result.IsValid).IsFalse();
+    }
+
+    [Test]
+    public async Task Validate_WithTableWithRowsOnly_ReturnsSuccess()
+    {
+        // Arrange
+        string json = """
+            {
+              "replacements": {
+                "s": {
+                  "items": [{ "type": "table", "rows": [["A", "B"], ["C", "D"]] }]
+                }
+              }
+            }
+            """;
+
+        // Act
+        SchemaValidationResult result = _sut.Validate(json);
+
+        // Assert
+        await Assert.That(result.IsValid).IsTrue();
     }
 }

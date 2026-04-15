@@ -28,7 +28,8 @@
               { "$ref": "#/$defs/paragraphItem" },
               { "$ref": "#/$defs/imageItem" },
               { "$ref": "#/$defs/unorderedListItem" },
-              { "$ref": "#/$defs/orderedListItem" }
+              { "$ref": "#/$defs/orderedListItem" },
+              { "$ref": "#/$defs/tableItem" }
             ]
           }
         }
@@ -115,6 +116,36 @@
         }
       },
       "required": ["type", "items"],
+      "additionalProperties": false
+    },
+    "tableItem": {
+      "type": "object",
+      "description": "A table with an optional header row and required body rows.",
+      "properties": {
+        "type": { "const": "table" },
+        "header": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Optional header row cells."
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Required table body rows.",
+          "items": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          }
+        },
+        "tableStyle": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional Wordprocessing table style reference (style ID)."
+        }
+      },
+      "required": ["type", "rows"],
       "additionalProperties": false
     }
   }

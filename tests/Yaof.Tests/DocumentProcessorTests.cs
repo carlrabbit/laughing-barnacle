@@ -182,4 +182,59 @@ public class DocumentProcessorTests
 
         await Assert.That(listParagraphs.Count).IsEqualTo(2);
     }
+
+    [Test]
+    public async Task ProcessDocument_WithTableItem_InsertsTableWithHeaderAndRows()
+    {
+        // Arrange
+        using Stream input = CreateMinimalDocx();
+        using var output = new MemoryStream();
+        ReplacementDocument replacements = BuildReplacements("intro",
+            new TableItem
+            {
+                Header = ["Name", "Score"],
+                Rows = [["Alice", "10"], ["Bob", "20"]]
+            });
+
+        // Act
+        _sut.ProcessDocument(input, replacements, output);
+
+        // Assert
+        output.Position = 0;
+        using var result = WordprocessingDocument.Open(output, isEditable: false);
+        Table? table = result.MainDocumentPart!.Document.Body!.Elements<Table>().FirstOrDefault();
+        await Assert.That(table).IsNotNull();
+
+        List<TableRow> rows = table!.Elements<TableRow>().ToList();
+        await Assert.That(rows.Count).IsEqualTo(3);
+        await Assert.That(string.Concat(rows[0].Descendants<Text>().Select(t => t.Text))).IsEqualTo("NameScore");
+        await Assert.That(string.Concat(rows[1].Descendants<Text>().Select(t => t.Text))).IsEqualTo("Alice10");
+        await Assert.That(string.Concat(rows[2].Descendants<Text>().Select(t => t.Text))).IsEqualTo("Bob20");
+    }
+
+    [Test]
+    public async Task ProcessDocument_WithTableStyle_SetsTableStyleReference()
+    {
+        // Arrange
+        using Stream input = CreateMinimalDocx();
+        using var output = new MemoryStream();
+        ReplacementDocument replacements = BuildReplacements("intro",
+            new TableItem
+            {
+                Rows = [["A"]],
+                TableStyle = "TableGrid"
+            });
+
+        // Act
+        _sut.ProcessDocument(input, replacements, output);
+
+        // Assert
+        output.Position = 0;
+        using var result = WordprocessingDocument.Open(output, isEditable: false);
+        Table? table = result.MainDocumentPart!.Document.Body!.Elements<Table>().FirstOrDefault();
+        await Assert.That(table).IsNotNull();
+
+        string? style = table!.GetFirstChild<TableProperties>()?.GetFirstChild<TableStyle>()?.Val?.Value;
+        await Assert.That(style).IsEqualTo("TableGrid");
+    }
 }

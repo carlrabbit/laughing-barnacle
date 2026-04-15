@@ -20,7 +20,8 @@ public class ReplacementDocumentSerializationTests
                     { "type": "paragraph",                  "text": "Body" },
                     { "type": "image",          "path": "img.png", "caption": "Cap" },
                     { "type": "unorderedList",  "items": ["A", "B"] },
-                    { "type": "orderedList",    "items": ["1", "2"] }
+                    { "type": "orderedList",    "items": ["1", "2"] },
+                    { "type": "table",          "header": ["H1", "H2"], "rows": [["A1", "B1"]], "tableStyle": "TableGrid" }
                   ]
                 }
               }
@@ -35,12 +36,13 @@ public class ReplacementDocumentSerializationTests
         await Assert.That(doc!.Replacements.ContainsKey("section1")).IsTrue();
 
         IReadOnlyList<ContentItem> items = doc.Replacements["section1"].Items;
-        await Assert.That(items.Count).IsEqualTo(5);
+        await Assert.That(items.Count).IsEqualTo(6);
         await Assert.That(items[0]).IsTypeOf<HeaderItem>();
         await Assert.That(items[1]).IsTypeOf<ParagraphItem>();
         await Assert.That(items[2]).IsTypeOf<ImageItem>();
         await Assert.That(items[3]).IsTypeOf<UnorderedListItem>();
         await Assert.That(items[4]).IsTypeOf<OrderedListItem>();
+        await Assert.That(items[5]).IsTypeOf<TableItem>();
     }
 
     [Test]
@@ -83,5 +85,38 @@ public class ReplacementDocumentSerializationTests
         // Assert
         await Assert.That(img.Path).IsEqualTo("photo.jpg");
         await Assert.That(img.Caption).IsNull();
+    }
+
+    [Test]
+    public async Task Deserialize_TableItem_WithHeaderAndStyle_HasCorrectProperties()
+    {
+        // Arrange
+        string json = """
+            {
+              "replacements": {
+                "s": {
+                  "items": [
+                    {
+                      "type": "table",
+                      "header": ["Name", "Value"],
+                      "rows": [["A", "1"], ["B", "2"]],
+                      "tableStyle": "TableGrid"
+                    }
+                  ]
+                }
+              }
+            }
+            """;
+
+        // Act
+        ReplacementDocument? doc = JsonSerializer.Deserialize<ReplacementDocument>(json, Options);
+        var table = (TableItem)doc!.Replacements["s"].Items[0];
+
+        // Assert
+        await Assert.That(table.Header).IsNotNull();
+        await Assert.That(table.Header!.Count).IsEqualTo(2);
+        await Assert.That(table.Rows.Count).IsEqualTo(2);
+        await Assert.That(table.Rows[0][0]).IsEqualTo("A");
+        await Assert.That(table.TableStyle).IsEqualTo("TableGrid");
     }
 }
