@@ -142,7 +142,7 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
                 ImageItem img => CreateImageElements(document, img, ref drawingId),
                 UnorderedListItem ul => CreateListParagraphs(ul.Items, listStyle: "ListBullet"),
                 OrderedListItem ol => CreateListParagraphs(ol.Items, listStyle: "ListNumber"),
-                TableItem table => [CreateTable(table)],
+                TableItem table => CreateTableElements(table),
                 _ => []
             };
 
@@ -285,7 +285,7 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
         }
     }
 
-    private static Table CreateTable(TableItem tableItem)
+    private static IEnumerable<OpenXmlElement> CreateTableElements(TableItem tableItem)
     {
         var table = new Table();
         var tableProperties = new TableProperties(
@@ -314,7 +314,16 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
             table.AppendChild(CreateTableRow(row, isHeaderRow: false));
         }
 
-        return table;
+        var elements = new List<OpenXmlElement> { table };
+
+        if (tableItem.Caption is not null)
+        {
+            elements.Add(new Paragraph(
+                new ParagraphProperties(new ParagraphStyleId { Val = "Caption" }),
+                new Run(new Text(tableItem.Caption) { Space = SpaceProcessingModeValues.Preserve })));
+        }
+
+        return elements;
     }
 
     private static TableRow CreateTableRow(IReadOnlyList<string> cells, bool isHeaderRow)

@@ -44,7 +44,7 @@ public class SchemaValidatorTests
                      { "type": "image", "path": "photo.png", "caption": "Fig 1" },
                      { "type": "unorderedList", "items": ["Apple", "Banana"] },
                      { "type": "orderedList", "items": ["First", "Second"] },
-                     { "type": "table", "header": ["Col A", "Col B"], "rows": [["1", "2"]], "tableStyle": "TableGrid" }
+                     { "type": "table", "header": ["Col A", "Col B"], "rows": [["1", "2"]], "tableStyle": "TableGrid", "caption": "Scores" }
                    ]
                  }
                }

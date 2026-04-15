@@ -237,4 +237,31 @@ public class DocumentProcessorTests
         string? style = table!.GetFirstChild<TableProperties>()?.GetFirstChild<TableStyle>()?.Val?.Value;
         await Assert.That(style).IsEqualTo("TableGrid");
     }
+
+    [Test]
+    public async Task ProcessDocument_WithTableCaption_InsertsCaptionParagraph()
+    {
+        // Arrange
+        using Stream input = CreateMinimalDocx();
+        using var output = new MemoryStream();
+        ReplacementDocument replacements = BuildReplacements("intro",
+            new TableItem
+            {
+                Rows = [["A"]],
+                Caption = "Example table"
+            });
+
+        // Act
+        _sut.ProcessDocument(input, replacements, output);
+
+        // Assert
+        output.Position = 0;
+        using var result = WordprocessingDocument.Open(output, isEditable: false);
+        var paragraphs = result.MainDocumentPart!.Document.Body!.Elements<Paragraph>().ToList();
+        Paragraph? caption = paragraphs.FirstOrDefault(p =>
+            p.ParagraphProperties?.ParagraphStyleId?.Val?.Value == "Caption" &&
+            string.Concat(p.Descendants<Text>().Select(t => t.Text)) == "Example table");
+
+        await Assert.That(caption).IsNotNull();
+    }
 }

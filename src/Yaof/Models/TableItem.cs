@@ -15,4 +15,7 @@ public record TableItem : ContentItem
 
     [JsonPropertyName("tableStyle")]
     public string? TableStyle { get; init; }
+
+    [JsonPropertyName("caption")]
+    public string? Caption { get; init; }
 }

@@ -143,6 +143,10 @@
           "type": "string",
           "minLength": 1,
           "description": "Optional Wordprocessing table style reference (style ID)."
+        },
+        "caption": {
+          "type": "string",
+          "description": "Optional caption text placed below the table."
         }
       },
       "required": ["type", "rows"],

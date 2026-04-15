@@ -21,7 +21,7 @@ public class ReplacementDocumentSerializationTests
                     { "type": "image",          "path": "img.png", "caption": "Cap" },
                     { "type": "unorderedList",  "items": ["A", "B"] },
                     { "type": "orderedList",    "items": ["1", "2"] },
-                    { "type": "table",          "header": ["H1", "H2"], "rows": [["A1", "B1"]], "tableStyle": "TableGrid" }
+                    { "type": "table",          "header": ["H1", "H2"], "rows": [["A1", "B1"]], "tableStyle": "TableGrid", "caption": "Table caption" }
                   ]
                 }
               }
@@ -118,5 +118,34 @@ public class ReplacementDocumentSerializationTests
         await Assert.That(table.Rows.Count).IsEqualTo(2);
         await Assert.That(table.Rows[0][0]).IsEqualTo("A");
         await Assert.That(table.TableStyle).IsEqualTo("TableGrid");
+        await Assert.That(table.Caption).IsNull();
+    }
+
+    [Test]
+    public async Task Deserialize_TableItem_WithCaption_HasCaption()
+    {
+        // Arrange
+        string json = """
+            {
+              "replacements": {
+                "s": {
+                  "items": [
+                    {
+                      "type": "table",
+                      "rows": [["A"]],
+                      "caption": "Results table"
+                    }
+                  ]
+                }
+              }
+            }
+            """;
+
+        // Act
+        ReplacementDocument? doc = JsonSerializer.Deserialize<ReplacementDocument>(json, Options);
+        var table = (TableItem)doc!.Replacements["s"].Items[0];
+
+        // Assert
+        await Assert.That(table.Caption).IsEqualTo("Results table");
     }
 }
