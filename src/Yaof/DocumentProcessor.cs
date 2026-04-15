@@ -142,6 +142,7 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
                 ImageItem img => CreateImageElements(document, img, ref drawingId),
                 UnorderedListItem ul => CreateListParagraphs(ul.Items, listStyle: "ListBullet"),
                 OrderedListItem ol => CreateListParagraphs(ol.Items, listStyle: "ListNumber"),
+                TableItem table => CreateTableElements(table),
                 _ => []
             };
 
@@ -282,5 +283,66 @@ public sealed partial class DocumentProcessor : IDocumentProcessor
                 new Run(
                     new Text(item) { Space = SpaceProcessingModeValues.Preserve }));
         }
+    }
+
+    private static IEnumerable<OpenXmlElement> CreateTableElements(TableItem tableItem)
+    {
+        var table = new Table();
+        var tableProperties = new TableProperties(
+            new TableBorders(
+                new TopBorder { Val = BorderValues.Single, Size = 4U },
+                new BottomBorder { Val = BorderValues.Single, Size = 4U },
+                new LeftBorder { Val = BorderValues.Single, Size = 4U },
+                new RightBorder { Val = BorderValues.Single, Size = 4U },
+                new InsideHorizontalBorder { Val = BorderValues.Single, Size = 4U },
+                new InsideVerticalBorder { Val = BorderValues.Single, Size = 4U }));
+
+        if (!string.IsNullOrWhiteSpace(tableItem.TableStyle))
+        {
+            tableProperties.PrependChild(new TableStyle { Val = tableItem.TableStyle });
+        }
+
+        table.AppendChild(tableProperties);
+
+        if (tableItem.Header is not null)
+        {
+            table.AppendChild(CreateTableRow(tableItem.Header, isHeaderRow: true));
+        }
+
+        foreach (IReadOnlyList<string> row in tableItem.Rows)
+        {
+            table.AppendChild(CreateTableRow(row, isHeaderRow: false));
+        }
+
+        var elements = new List<OpenXmlElement> { table };
+
+        if (tableItem.Caption is not null)
+        {
+            elements.Add(new Paragraph(
+                new ParagraphProperties(new ParagraphStyleId { Val = "Caption" }),
+                new Run(new Text(tableItem.Caption) { Space = SpaceProcessingModeValues.Preserve })));
+        }
+
+        return elements;
+    }
+
+    private static TableRow CreateTableRow(IReadOnlyList<string> cells, bool isHeaderRow)
+    {
+        var row = new TableRow();
+
+        if (isHeaderRow)
+        {
+            row.AppendChild(new TableRowProperties(new TableHeader()));
+        }
+
+        foreach (string cellText in cells)
+        {
+            row.AppendChild(new TableCell(
+                new Paragraph(
+                    new Run(new Text(cellText) { Space = SpaceProcessingModeValues.Preserve })),
+                new TableCellProperties(new TableCellWidth { Type = TableWidthUnitValues.Auto })));
+        }
+
+        return row;
     }
 }
