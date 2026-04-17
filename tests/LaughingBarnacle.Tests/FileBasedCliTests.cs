@@ -2,10 +2,9 @@ using System.Diagnostics;
 
 namespace LaughingBarnacle.Tests;
 
+[NotInParallel]
 public class FileBasedCliTests
 {
-    private static readonly SemaphoreSlim CliExecutionLock = new(1, 1);
-
     [Test]
     public async Task Program_WithHelloCommand_PrintsHello()
     {
@@ -34,35 +33,40 @@ public class FileBasedCliTests
         await Assert.That(output).Contains("Goodbye!");
     }
 
+    [Test]
+    public async Task Program_WithUnknownCommand_ReturnsNonZeroExitCode()
+    {
+        // Arrange
+        CommandResult result = await InvokeCliAsync("unknown");
+
+        // Act
+        int exitCode = result.ExitCode;
+
+        // Assert
+        await Assert.That(exitCode == 0).IsFalse();
+    }
+
     private static async Task<CommandResult> InvokeCliAsync(string command)
     {
-        await CliExecutionLock.WaitAsync();
-        try
+        string repositoryRoot = FindRepositoryRoot();
+        string cliDirectory = Path.Combine(repositoryRoot, "sfas");
+        var startInfo = new ProcessStartInfo("dotnet", $"run Program.cs -- {command}")
         {
-            string repositoryRoot = FindRepositoryRoot();
-            string programPath = Path.Combine(repositoryRoot, "sfas", "Program.cs");
-            var startInfo = new ProcessStartInfo("dotnet", $"run \"{programPath}\" -- {command}")
-            {
-                WorkingDirectory = repositoryRoot,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+            WorkingDirectory = cliDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
 
-            using Process process = Process.Start(startInfo)
-                ?? throw new InvalidOperationException("Unable to start dotnet process.");
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Unable to start dotnet process.");
 
-            string standardOutput = await process.StandardOutput.ReadToEndAsync();
-            string standardError = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+        string standardOutput = await process.StandardOutput.ReadToEndAsync();
+        string standardError = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
 
-            return new CommandResult(process.ExitCode, standardOutput, standardError);
-        }
-        finally
-        {
-            CliExecutionLock.Release();
-        }
+        return new CommandResult(process.ExitCode, standardOutput, standardError);
     }
 
     private static string FindRepositoryRoot()
