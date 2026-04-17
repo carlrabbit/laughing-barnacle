@@ -1,107 +1,87 @@
+using System.Diagnostics;
+
 namespace LaughingBarnacle.Tests;
 
-public class JsonToMarkdownConverterTests
+public class FileBasedCliTests
 {
+    private static readonly SemaphoreSlim CliExecutionLock = new(1, 1);
+
     [Test]
-    public async Task Convert_WithSingleObject_ReturnsOneTable()
+    public async Task Program_WithHelloCommand_PrintsHello()
     {
         // Arrange
-        var json = """[{"Name":"Alice","Age":"30"}]""";
+        CommandResult result = await InvokeCliAsync("hello");
 
         // Act
-        var result = JsonToMarkdownConverter.Convert(json).ToList();
+        string output = result.StandardOutput.Trim();
 
         // Assert
-        await Assert.That(result.Count).IsEqualTo(1);
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(output).Contains("Hello!");
     }
 
     [Test]
-    public async Task Convert_WithSingleObject_TableHasCorrectHeader()
+    public async Task Program_WithGoodbyeCommand_PrintsGoodbye()
     {
         // Arrange
-        var json = """[{"Name":"Alice"}]""";
+        CommandResult result = await InvokeCliAsync("goodbye");
 
         // Act
-        var table = JsonToMarkdownConverter.Convert(json).First();
+        string output = result.StandardOutput.Trim();
 
         // Assert
-        await Assert.That(table).StartsWith("|Property|Description|");
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(output).Contains("Goodbye!");
     }
 
-    [Test]
-    public async Task Convert_WithSingleObject_TableHasSeparatorRow()
+    private static async Task<CommandResult> InvokeCliAsync(string command)
     {
-        // Arrange
-        var json = """[{"Name":"Alice"}]""";
+        await CliExecutionLock.WaitAsync();
+        try
+        {
+            string repositoryRoot = FindRepositoryRoot();
+            string programPath = Path.Combine(repositoryRoot, "sfas", "Program.cs");
+            var startInfo = new ProcessStartInfo("dotnet", $"run \"{programPath}\" -- {command}")
+            {
+                WorkingDirectory = repositoryRoot,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
-        // Act
-        var lines = JsonToMarkdownConverter.Convert(json).First().Split('\n');
+            using Process process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Unable to start dotnet process.");
 
-        // Assert
-        await Assert.That(lines[1].Trim()).IsEqualTo("|---|---|");
+            string standardOutput = await process.StandardOutput.ReadToEndAsync();
+            string standardError = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            return new CommandResult(process.ExitCode, standardOutput, standardError);
+        }
+        finally
+        {
+            CliExecutionLock.Release();
+        }
     }
 
-    [Test]
-    public async Task Convert_WithSingleObject_TableContainsPropertyRows()
+    private static string FindRepositoryRoot()
     {
-        // Arrange
-        var json = """[{"Name":"Alice","City":"London"}]""";
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
 
-        // Act
-        var table = JsonToMarkdownConverter.Convert(json).First();
+        while (current is not null)
+        {
+            string solutionPath = Path.Combine(current.FullName, "LaughingBarnacle.slnx");
+            if (File.Exists(solutionPath))
+            {
+                return current.FullName;
+            }
 
-        // Assert
-        await Assert.That(table).Contains("|Name|Alice|");
-        await Assert.That(table).Contains("|City|London|");
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate repository root.");
     }
 
-    [Test]
-    public async Task Convert_WithMultipleObjects_ReturnsMultipleTables()
-    {
-        // Arrange
-        var json = """[{"Name":"Alice"},{"Name":"Bob"}]""";
-
-        // Act
-        var result = JsonToMarkdownConverter.Convert(json).ToList();
-
-        // Assert
-        await Assert.That(result.Count).IsEqualTo(2);
-    }
-
-    [Test]
-    public async Task Convert_WithEmptyArray_ReturnsNoTables()
-    {
-        // Arrange
-        var json = "[]";
-
-        // Act
-        var result = JsonToMarkdownConverter.Convert(json).ToList();
-
-        // Assert
-        await Assert.That(result).IsEmpty();
-    }
-
-    [Test]
-    public async Task Convert_WithNonArrayJson_ThrowsArgumentException()
-    {
-        // Arrange
-        var json = """{"Name":"Alice"}""";
-
-        // Act / Assert
-        await Assert.That(() => JsonToMarkdownConverter.Convert(json).ToList())
-            .Throws<ArgumentException>();
-    }
-
-    [Test]
-    public async Task Convert_WithEmptyStringValue_RendersEmptyCell()
-    {
-        // Arrange
-        var json = """[{"Name":""}]""";
-
-        // Act
-        var table = JsonToMarkdownConverter.Convert(json).First();
-
-        // Assert
-        await Assert.That(table).Contains("|Name||");
-    }
+    private sealed record CommandResult(int ExitCode, string StandardOutput, string StandardError);
 }
