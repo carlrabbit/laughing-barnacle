@@ -18,6 +18,16 @@ public sealed class VersionedKvClient(IVersionedKeyValueStore store) : IVersione
         CancellationToken cancellationToken = default) =>
         store.UpsertBlobAsync(key, expectedVersionId, value, cancellationToken);
 
+    public Task<VersionedUpsertResult> UpsertBlobAsync(
+        string key,
+        string? expectedVersionId,
+        Stream valueStream,
+        CancellationToken cancellationToken = default) =>
+        store.UpsertBlobAsync(key, expectedVersionId, valueStream, cancellationToken);
+
     public Task<KvReadResult?> GetAsync(string key, CancellationToken cancellationToken = default) =>
         store.GetAsync(key, cancellationToken);
+
+    public Task<Stream?> GetBlobStreamAsync(string key, CancellationToken cancellationToken = default) =>
+        store.GetBlobStreamAsync(key, cancellationToken);
 }

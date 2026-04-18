@@ -94,6 +94,52 @@ public class KvStoreBehaviorTests
         await Assert.That(read!.AsString()).IsEqualTo("di-value");
     }
 
+    [Test]
+    public async Task StoreBlobAsync_WithStream_PersistsAndReturnsBlobStream()
+    {
+        // Arrange
+        await using var dbContext = CreateDbContext();
+        var store = new WriteOnceKeyValueStore(dbContext);
+        await using var source = new MemoryStream([1, 2, 3, 4, 5]);
+
+        // Act
+        var saved = await store.StoreBlobAsync("blob-key", source);
+        await using var retrieved = await store.GetBlobStreamAsync("blob-key");
+        using var copied = new MemoryStream();
+        await retrieved!.CopyToAsync(copied);
+
+        // Assert
+        await Assert.That(saved.Created).IsTrue();
+        await Assert.That(Convert.ToBase64String(copied.ToArray()))
+            .IsEqualTo(Convert.ToBase64String([1, 2, 3, 4, 5]));
+    }
+
+    [Test]
+    public async Task UpsertBlobAsync_WithStreamInClient_UpdatesAndReturnsBlobStream()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddKvStore(options => options.UseInMemoryDatabase($"kvstore-{Guid.NewGuid():N}"));
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var factory = scope.ServiceProvider.GetRequiredService<IKvStoreClientFactory>();
+        var client = factory.CreateVersionedClient();
+        await using var createStream = new MemoryStream([10, 20]);
+        var created = await client.UpsertBlobAsync("blob-versioned", null, createStream);
+        await using var updateStream = new MemoryStream([30, 40, 50]);
+
+        // Act
+        var updated = await client.UpsertBlobAsync("blob-versioned", created.VersionId, updateStream);
+        await using var readStream = await client.GetBlobStreamAsync("blob-versioned");
+        using var copied = new MemoryStream();
+        await readStream!.CopyToAsync(copied);
+
+        // Assert
+        await Assert.That(updated.Success).IsTrue();
+        await Assert.That(Convert.ToBase64String(copied.ToArray()))
+            .IsEqualTo(Convert.ToBase64String([30, 40, 50]));
+    }
+
     private static KvStoreDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<KvStoreDbContext>()

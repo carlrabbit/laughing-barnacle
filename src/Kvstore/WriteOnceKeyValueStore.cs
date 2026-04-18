@@ -17,6 +17,23 @@ public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteO
         CancellationToken cancellationToken = default) =>
         StoreCoreAsync(key, KvEntryKind.Blob, value, cancellationToken);
 
+    /// <inheritdoc />
+    public async Task<WriteOnceStoreResult> StoreBlobAsync(
+        string key,
+        Stream valueStream,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(valueStream);
+        if (!valueStream.CanRead)
+        {
+            throw new ArgumentException("Blob stream must be readable.", nameof(valueStream));
+        }
+
+        using var memoryStream = new MemoryStream();
+        await valueStream.CopyToAsync(memoryStream, cancellationToken);
+        return await StoreCoreAsync(key, KvEntryKind.Blob, memoryStream.ToArray(), cancellationToken);
+    }
+
     public async Task<KvReadResult?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
         KeyValidation.Validate(key);
@@ -31,6 +48,18 @@ public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteO
         }
 
         return new KvReadResult(existing.Key, existing.VersionId, existing.Kind, existing.ValueBytes);
+    }
+
+    /// <inheritdoc />
+    public async Task<Stream?> GetBlobStreamAsync(string key, CancellationToken cancellationToken = default)
+    {
+        var value = await GetAsync(key, cancellationToken);
+        if (value is null || value.Kind != KvEntryKind.Blob)
+        {
+            return null;
+        }
+
+        return new MemoryStream(value.ValueBytes, writable: false);
     }
 
     private async Task<WriteOnceStoreResult> StoreCoreAsync(
