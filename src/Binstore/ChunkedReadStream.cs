@@ -29,7 +29,7 @@ internal sealed class ChunkedReadStream(IReadOnlyList<byte[]> chunks) : Stream
         {
             var chunk = chunks[chunkIndex];
             var remainingInChunk = chunk.Length - chunkOffset;
-            if (remainingInChunk <= 0)
+            if (remainingInChunk == 0)
             {
                 chunkIndex++;
                 chunkOffset = 0;
