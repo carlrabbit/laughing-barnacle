@@ -26,7 +26,7 @@ public interface IVersionedKeyValueStore
     Task<KvReadResult?> GetAsync(string key, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the blob value as a new in-memory stream. The returned stream is owned by the caller and must be disposed.
+    /// Gets the blob value as a new read-only in-memory stream. The returned stream is owned by the caller and must be disposed.
     /// </summary>
     Task<Stream?> GetBlobStreamAsync(string key, CancellationToken cancellationToken = default);
 }

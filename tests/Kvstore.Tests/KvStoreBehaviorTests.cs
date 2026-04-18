@@ -100,11 +100,11 @@ public class KvStoreBehaviorTests
         // Arrange
         await using var dbContext = CreateDbContext();
         var store = new WriteOnceKeyValueStore(dbContext);
-        await using var source = new MemoryStream([1, 2, 3, 4, 5]);
+        using var source = new MemoryStream([1, 2, 3, 4, 5]);
 
         // Act
         var saved = await store.StoreBlobAsync("blob-key", source);
-        await using var retrieved = await store.GetBlobStreamAsync("blob-key");
+        using var retrieved = await store.GetBlobStreamAsync("blob-key");
         using var copied = new MemoryStream();
         await retrieved!.CopyToAsync(copied);
 
@@ -124,13 +124,13 @@ public class KvStoreBehaviorTests
         await using var scope = provider.CreateAsyncScope();
         var factory = scope.ServiceProvider.GetRequiredService<IKvStoreClientFactory>();
         var client = factory.CreateVersionedClient();
-        await using var createStream = new MemoryStream([10, 20]);
+        using var createStream = new MemoryStream([10, 20]);
         var created = await client.UpsertBlobAsync("blob-versioned", null, createStream);
-        await using var updateStream = new MemoryStream([30, 40, 50]);
+        using var updateStream = new MemoryStream([30, 40, 50]);
 
         // Act
         var updated = await client.UpsertBlobAsync("blob-versioned", created.VersionId, updateStream);
-        await using var readStream = await client.GetBlobStreamAsync("blob-versioned");
+        using var readStream = await client.GetBlobStreamAsync("blob-versioned");
         using var copied = new MemoryStream();
         await readStream!.CopyToAsync(copied);
 
