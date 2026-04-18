@@ -13,8 +13,9 @@ public sealed class KvStoreDbContext(DbContextOptions<KvStoreDbContext> options)
         var entity = modelBuilder.Entity<KvEntryRecord>();
         entity.ToTable("kv_entries");
         entity.HasKey(x => x.Id);
-        entity.HasIndex(x => x.Key).IsUnique();
+        entity.HasIndex(x => x.KeyHash).IsUnique();
         entity.Property(x => x.Key).IsRequired();
+        entity.Property(x => x.KeyHash).IsRequired().HasMaxLength(64);
         entity.Property(x => x.VersionId).IsRequired().IsConcurrencyToken().HasMaxLength(64);
         entity.Property(x => x.ValueBytes).IsRequired();
         entity.Property(x => x.Kind).IsRequired();

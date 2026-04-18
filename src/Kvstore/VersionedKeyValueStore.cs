@@ -22,8 +22,11 @@ public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersio
     public async Task<KvReadResult?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
         KeyValidation.Validate(key);
+        var keyHash = KeyHashing.Compute(key);
 
-        var existing = await dbContext.Entries.AsNoTracking().SingleOrDefaultAsync(x => x.Key == key, cancellationToken);
+        var existing = await dbContext.Entries
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.KeyHash == keyHash && x.Key == key, cancellationToken);
         if (existing is null)
         {
             return null;
@@ -41,6 +44,7 @@ public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersio
     {
         KeyValidation.Validate(key);
         ArgumentNullException.ThrowIfNull(valueBytes);
+        var keyHash = KeyHashing.Compute(key);
 
         if (string.IsNullOrEmpty(expectedVersionId))
         {
@@ -49,6 +53,7 @@ public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersio
                 new KvEntryRecord
                 {
                     Key = key,
+                    KeyHash = keyHash,
                     Kind = kind,
                     ValueBytes = valueBytes,
                     VersionId = versionId
@@ -61,7 +66,9 @@ public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersio
             }
             catch (DbUpdateException)
             {
-                var nowExists = await dbContext.Entries.AsNoTracking().AnyAsync(x => x.Key == key, cancellationToken);
+                var nowExists = await dbContext.Entries
+                    .AsNoTracking()
+                    .AnyAsync(x => x.KeyHash == keyHash && x.Key == key, cancellationToken);
                 if (nowExists)
                 {
                     return new VersionedUpsertResult(false, false, null);
@@ -71,7 +78,8 @@ public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersio
             }
         }
 
-        var existing = await dbContext.Entries.SingleOrDefaultAsync(x => x.Key == key, cancellationToken);
+        var existing = await dbContext.Entries
+            .SingleOrDefaultAsync(x => x.KeyHash == keyHash && x.Key == key, cancellationToken);
         if (existing is null || existing.VersionId != expectedVersionId)
         {
             return new VersionedUpsertResult(false, false, null);

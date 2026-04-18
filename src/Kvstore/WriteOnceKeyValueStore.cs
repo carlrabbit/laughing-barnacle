@@ -20,8 +20,11 @@ public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteO
     public async Task<KvReadResult?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
         KeyValidation.Validate(key);
+        var keyHash = KeyHashing.Compute(key);
 
-        var existing = await dbContext.Entries.AsNoTracking().SingleOrDefaultAsync(x => x.Key == key, cancellationToken);
+        var existing = await dbContext.Entries
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.KeyHash == keyHash && x.Key == key, cancellationToken);
         if (existing is null)
         {
             return null;
@@ -38,8 +41,11 @@ public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteO
     {
         KeyValidation.Validate(key);
         ArgumentNullException.ThrowIfNull(valueBytes);
+        var keyHash = KeyHashing.Compute(key);
 
-        var existing = await dbContext.Entries.AsNoTracking().SingleOrDefaultAsync(x => x.Key == key, cancellationToken);
+        var existing = await dbContext.Entries
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.KeyHash == keyHash && x.Key == key, cancellationToken);
         if (existing is not null)
         {
             return new WriteOnceStoreResult(false, existing.VersionId);
@@ -50,6 +56,7 @@ public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteO
             new KvEntryRecord
             {
                 Key = key,
+                KeyHash = keyHash,
                 Kind = kind,
                 ValueBytes = valueBytes,
                 VersionId = versionId
@@ -60,7 +67,9 @@ public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteO
         }
         catch (DbUpdateException)
         {
-            var current = await dbContext.Entries.AsNoTracking().SingleOrDefaultAsync(x => x.Key == key, cancellationToken);
+            var current = await dbContext.Entries
+                .AsNoTracking()
+                .SingleOrDefaultAsync(x => x.KeyHash == keyHash && x.Key == key, cancellationToken);
             if (current is not null)
             {
                 return new WriteOnceStoreResult(false, current.VersionId);
