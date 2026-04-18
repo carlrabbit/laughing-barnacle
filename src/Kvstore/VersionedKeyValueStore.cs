@@ -61,7 +61,13 @@ public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersio
             }
             catch (DbUpdateException)
             {
-                return new VersionedUpsertResult(false, false, null);
+                var nowExists = await dbContext.Entries.AsNoTracking().AnyAsync(x => x.Key == key, cancellationToken);
+                if (nowExists)
+                {
+                    return new VersionedUpsertResult(false, false, null);
+                }
+
+                throw;
             }
         }
 

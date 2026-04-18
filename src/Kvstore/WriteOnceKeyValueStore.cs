@@ -54,7 +54,20 @@ public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteO
                 ValueBytes = valueBytes,
                 VersionId = versionId
             });
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            var current = await dbContext.Entries.AsNoTracking().SingleOrDefaultAsync(x => x.Key == key, cancellationToken);
+            if (current is not null)
+            {
+                return new WriteOnceStoreResult(false, current.VersionId);
+            }
+
+            throw;
+        }
 
         return new WriteOnceStoreResult(true, versionId);
     }

@@ -1,5 +1,3 @@
-using Kvstore;
-
 namespace Kvcli;
 
 public interface IKvStoreClientFactory
