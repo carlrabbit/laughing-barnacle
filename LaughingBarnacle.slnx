@@ -3,10 +3,13 @@
     <Project Path="sfas/JsonToMarkdown.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Kvcli/Kvcli.csproj" />
+    <Project Path="src/Kvstore/Kvstore.csproj" />
     <Project Path="src/LaughingBarnacle/LaughingBarnacle.csproj" />
     <Project Path="src/Yaof/Yaof.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Kvstore.Tests/Kvstore.Tests.csproj" />
     <Project Path="tests/LaughingBarnacle.Tests/LaughingBarnacle.Tests.csproj" />
     <Project Path="tests/Yaof.Tests/Yaof.Tests.csproj" />
   </Folder>
