@@ -21,19 +21,21 @@ public sealed class SqlServerCustomMigrationsSqlGenerator(
         var password = PasswordResolver.Resolve(
             createSqlUserOperation.Password,
             createSqlUserOperation.PasswordEnvironmentVariable);
-        var escapedUserNameLiteral = EscapeSqlLiteral(createSqlUserOperation.UserName);
-        var escapedPasswordLiteral = EscapeSqlLiteral(password);
+        var stringTypeMapping = Dependencies.TypeMappingSource.FindMapping(typeof(string))
+            ?? throw new InvalidOperationException("Could not resolve string type mapping.");
+        var userNameLiteral = stringTypeMapping.GenerateSqlLiteral(createSqlUserOperation.UserName);
+        var passwordLiteral = stringTypeMapping.GenerateSqlLiteral(password);
         var delimitedUserName = Dependencies.SqlGenerationHelper.DelimitIdentifier(createSqlUserOperation.UserName);
 
         if (createSqlUserOperation.IfNotExists)
         {
             builder
-                .AppendLine($"IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'{escapedUserNameLiteral}')")
+                .AppendLine($"IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = {userNameLiteral})")
                 .AppendLine("BEGIN");
         }
 
         builder
-            .AppendLine($"    CREATE USER {delimitedUserName} WITH PASSWORD = N'{escapedPasswordLiteral}';");
+            .AppendLine($"    CREATE USER {delimitedUserName} WITH PASSWORD = {passwordLiteral};");
 
         if (createSqlUserOperation.IfNotExists)
         {
@@ -42,6 +44,4 @@ public sealed class SqlServerCustomMigrationsSqlGenerator(
 
         builder.EndCommand();
     }
-
-    private static string EscapeSqlLiteral(string value) => value.Replace("'", "''", StringComparison.Ordinal);
 }

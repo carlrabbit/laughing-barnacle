@@ -19,7 +19,7 @@ public static class MigrationBuilderExtensions
         {
             throw new ArgumentException(
                 "Either a password or a password environment variable must be provided.",
-                nameof(password));
+                $"{nameof(password)}|{nameof(passwordEnvironmentVariable)}");
         }
 
         var operation = new CreateSqlUserOperation

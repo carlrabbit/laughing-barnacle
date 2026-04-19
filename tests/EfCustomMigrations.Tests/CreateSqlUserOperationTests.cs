@@ -99,7 +99,7 @@ public class CreateSqlUserOperationTests
     private static TestSqlServerDbContext CreateSqlServerDbContext()
     {
         var options = new DbContextOptionsBuilder<TestSqlServerDbContext>()
-            .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=efcustommigrations;Trusted_Connection=True;Encrypt=False")
+            .UseSqlServer("Server=example.invalid;Database=efcustommigrations;User Id=placeholder;Password=placeholder;Encrypt=False")
             .UseEfCustomMigrationOperationsForSqlServer()
             .Options;
 
@@ -109,7 +109,7 @@ public class CreateSqlUserOperationTests
     private static TestPostgreSqlDbContext CreatePostgreSqlDbContext()
     {
         var options = new DbContextOptionsBuilder<TestPostgreSqlDbContext>()
-            .UseNpgsql("Host=localhost;Database=efcustommigrations;Username=test;Password=test")
+            .UseNpgsql("Host=example.invalid;Database=efcustommigrations;Username=placeholder;Password=placeholder")
             .UseEfCustomMigrationOperationsForPostgreSql()
             .Options;
 

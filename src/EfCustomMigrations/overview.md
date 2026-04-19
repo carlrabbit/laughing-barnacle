@@ -2,7 +2,7 @@
 
 This library provides custom Entity Framework Core migration operations for:
 
-- Microsoft SQL Server 2022
+- Microsoft SQL Server (tested with SQL Server 2022)
 - PostgreSQL
 
 The first included operation is `CreateSqlUser`, implemented as a custom migration operation with provider-specific SQL generation.
