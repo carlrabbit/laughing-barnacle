@@ -69,7 +69,7 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
                 int bytesRead;
                 while ((bytesRead = await jsonStream.ReadAsync(buffer.AsMemory(0, chunkSize), cancellationToken)) > 0)
                 {
-                    ParseJsonTypePrefix(buffer.AsSpan(0, bytesRead), ref jsonType, ref bomState);
+                    ValidateAndDetectJsonRootType(buffer.AsSpan(0, bytesRead), ref jsonType, ref bomState);
 
                     dbContext.JsonChunks.Add(new JsonChunkRecord
                     {
@@ -222,7 +222,7 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
         var buffer = new byte[ReadBufferSize];
         var bytesInBuffer = 0;
         var isFinalBlock = false;
-        var parsingState = new StreamingParsingState();
+        var parsingState = new JsonStreamParserState();
 
         while (!parsingState.RootCompleted)
         {
@@ -239,7 +239,7 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
                 }
             }
 
-            var parsedElements = ParseBatch(
+            var parsedElements = ParseStreamingBatch(
                 buffer,
                 bytesInBuffer,
                 isFinalBlock,
@@ -276,12 +276,12 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
         }
     }
 
-    private static List<JsonElement> ParseBatch(
+    private static List<JsonElement> ParseStreamingBatch(
         byte[] buffer,
         int bytesInBuffer,
         bool isFinalBlock,
         JsonRootType rootType,
-        StreamingParsingState parsingState,
+        JsonStreamParserState parsingState,
         out int consumed,
         out bool needMoreData)
     {
@@ -389,30 +389,30 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
         return true;
     }
 
-    private static void ParseJsonTypePrefix(ReadOnlySpan<byte> chunk, ref JsonRootType? jsonType, ref int bomState)
+    private static void ValidateAndDetectJsonRootType(ReadOnlySpan<byte> chunk, ref JsonRootType? jsonType, ref int bomState)
     {
         if (jsonType is not null)
         {
             return;
         }
 
-        foreach (var current in chunk)
+        foreach (var currentByte in chunk)
         {
             if (bomState < 3)
             {
-                if (bomState == 0 && current == 0xEF)
+                if (bomState == 0 && currentByte == 0xEF)
                 {
                     bomState = 1;
                     continue;
                 }
 
-                if (bomState == 1 && current == 0xBB)
+                if (bomState == 1 && currentByte == 0xBB)
                 {
                     bomState = 2;
                     continue;
                 }
 
-                if (bomState == 2 && current == 0xBF)
+                if (bomState == 2 && currentByte == 0xBF)
                 {
                     bomState = 3;
                     continue;
@@ -421,24 +421,24 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
                 bomState = 3;
             }
 
-            if (current is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n')
+            if (currentByte is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n')
             {
                 continue;
             }
 
-            jsonType = current switch
+            jsonType = currentByte switch
             {
                 (byte)'{' => JsonRootType.Object,
                 (byte)'[' => JsonRootType.Array,
                 _ => throw new JsonException(
-                    $"Only JSON objects and arrays are supported as root values. Found byte 0x{current:X2}.")
+                    $"Only JSON objects and arrays are supported as root values. Found byte 0x{currentByte:X2}.")
             };
 
             return;
         }
     }
 
-    private sealed class StreamingParsingState
+    private sealed class JsonStreamParserState
     {
         public JsonReaderState ReaderState;
         public bool RootRead;

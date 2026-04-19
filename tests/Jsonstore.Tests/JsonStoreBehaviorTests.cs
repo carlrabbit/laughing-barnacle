@@ -37,12 +37,25 @@ public class JsonStoreBehaviorTests
         // Arrange
         await using var dbContext = CreateDbContext();
         var store = new WriteOnceJsonStore(dbContext);
+        var primitiveJsonValues = new[] { "123", "\"text\"", "true", "false", "null" };
 
         // Act
-        Func<Task> act = () => store.StoreAsync("primitive-key", "123");
+        var caughtExceptions = new List<JsonException>();
+        for (var i = 0; i < primitiveJsonValues.Length; i++)
+        {
+            var primitiveJson = primitiveJsonValues[i];
+            try
+            {
+                await store.StoreAsync($"primitive-key-{i}", primitiveJson);
+            }
+            catch (JsonException exception)
+            {
+                caughtExceptions.Add(exception);
+            }
+        }
 
         // Assert
-        await Assert.That(act).Throws<JsonException>();
+        await Assert.That(caughtExceptions.Count).IsEqualTo(primitiveJsonValues.Length);
     }
 
     [Test]
