@@ -3,6 +3,8 @@
     <Project Path="sfas/JsonToMarkdown.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/BinJsonStoreApi.Client/BinJsonStoreApi.Client.csproj" />
+    <Project Path="src/BinJsonStoreApi/BinJsonStoreApi.csproj" />
     <Project Path="src/Bincli/Bincli.csproj" />
     <Project Path="src/Binstore/Binstore.csproj" />
     <Project Path="src/EfCustomMigrations/EfCustomMigrations.csproj" />
@@ -14,6 +16,7 @@
     <Project Path="src/Yaof/Yaof.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/BinJsonStoreApi.Tests/BinJsonStoreApi.Tests.csproj" />
     <Project Path="tests/Binstore.Tests/Binstore.Tests.csproj" />
     <Project Path="tests/EfCustomMigrations.Tests/EfCustomMigrations.Tests.csproj" />
     <Project Path="tests/Jsonstore.Tests/Jsonstore.Tests.csproj" />
