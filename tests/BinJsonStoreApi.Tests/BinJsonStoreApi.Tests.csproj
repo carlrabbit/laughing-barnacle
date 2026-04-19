@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BinJsonStoreApi\BinJsonStoreApi.csproj" />
+    <ProjectReference Include="..\..\src\BinJsonStoreApi.Client\BinJsonStoreApi.Client.csproj" />
   </ItemGroup>
 
 </Project>

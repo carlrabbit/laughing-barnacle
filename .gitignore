@@ -19,6 +19,8 @@ x86/
 [Aa][Rr][Mm]64/
 bld/
 [Bb]in/
+!src/BinJsonStoreApi.Client/Generated/Bin/
+!src/BinJsonStoreApi.Client/Generated/Bin/**
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
