@@ -321,7 +321,7 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
                 {
                     JsonRootType.Object => JsonTokenType.StartObject,
                     JsonRootType.Array => JsonTokenType.StartArray,
-                    _ => throw new InvalidOperationException($"Unsupported root type: {rootType}.")
+                    _ => throw new ArgumentOutOfRangeException(nameof(rootType), rootType, "Unsupported root type.")
                 };
 
                 if (reader.TokenType != expectedToken)
@@ -347,7 +347,8 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
                     continue;
                 }
 
-                throw new JsonException("Unexpected token while reading object properties.");
+                throw new JsonException(
+                    $"Unexpected token {reader.TokenType} at depth {reader.CurrentDepth} while reading object properties.");
             }
 
             if (reader.TokenType == JsonTokenType.EndArray && reader.CurrentDepth == 0)
@@ -429,7 +430,8 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
             {
                 (byte)'{' => JsonRootType.Object,
                 (byte)'[' => JsonRootType.Array,
-                _ => throw new JsonException("Only JSON objects and arrays are supported as root values.")
+                _ => throw new JsonException(
+                    $"Only JSON objects and arrays are supported as root values. Found byte 0x{current:X2}.")
             };
 
             return;
