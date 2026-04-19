@@ -33,7 +33,7 @@ public class BinJsonStoreApiClientRetryBehaviorTests
 
         // Assert
         await Assert.That(handler.AttemptCount).IsEqualTo(6);
-        await Assert.That(stopwatch.Elapsed).IsGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(450));
+        await Assert.That(stopwatch.Elapsed).IsGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(500));
         await Assert.That(result).IsNotNull();
     }
 

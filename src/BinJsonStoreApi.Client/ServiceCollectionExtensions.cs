@@ -10,6 +10,7 @@ namespace BinJsonStoreApi.Client;
 public static class ServiceCollectionExtensions
 {
     private const string HttpClientName = "BinJsonStoreApi.Client";
+    private const int MaxRetryAttempts = 5;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(100);
 
     public static IHttpClientBuilder AddBinJsonStoreApiClient(
@@ -49,5 +50,5 @@ public static class ServiceCollectionExtensions
     private static IAsyncPolicy<HttpResponseMessage> CreateRetryPolicy() =>
         HttpPolicyExtensions
             .HandleTransientHttpError()
-            .WaitAndRetryAsync(5, static _ => RetryDelay);
+            .WaitAndRetryAsync(MaxRetryAttempts, static _ => RetryDelay);
 }
