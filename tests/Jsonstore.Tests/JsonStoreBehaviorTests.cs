@@ -137,6 +137,36 @@ public class JsonStoreBehaviorTests
     }
 
     [Test]
+    public async Task GetObjectPropertiesAsync_WithMalformedJsonTextAndUtf8Strings_ReturnsExactStringValues()
+    {
+        // Arrange
+        await using var dbContext = CreateDbContext();
+        var store = new WriteOnceJsonStore(dbContext);
+        var malformedJsonText = """{"broken":[1,2,} "unterminated": true""";
+        var utf8Text = "Emoji 😀 · Greek Ω · Japanese 日本語 · Arabic العربية · Accents café naïve";
+        var payload = JsonSerializer.Serialize(new
+        {
+            malformed = malformedJsonText,
+            utf8 = utf8Text
+        });
+        await store.StoreAsync("malformed-and-utf8-object-key", payload);
+        var values = new List<JsonElement>();
+
+        // Act
+        await foreach (var propertyValue in store.GetObjectPropertiesAsync("malformed-and-utf8-object-key"))
+        {
+            values.Add(propertyValue);
+        }
+
+        // Assert
+        await Assert.That(values.Count).IsEqualTo(2);
+        await Assert.That(values[0].ValueKind).IsEqualTo(JsonValueKind.String);
+        await Assert.That(values[1].ValueKind).IsEqualTo(JsonValueKind.String);
+        await Assert.That(values[0].GetString()).IsEqualTo(malformedJsonText);
+        await Assert.That(values[1].GetString()).IsEqualTo(utf8Text);
+    }
+
+    [Test]
     public async Task GetArrayElementsAsync_WithArrayValue_ReturnsElements()
     {
         // Arrange
@@ -191,6 +221,36 @@ public class JsonStoreBehaviorTests
         await Assert.That(values[1].ValueKind).IsEqualTo(JsonValueKind.String);
         await Assert.That(values[0].GetString()).IsEqualTo(embeddedJsonText);
         await Assert.That(values[1].GetString()).IsEqualTo(markdownText);
+    }
+
+    [Test]
+    public async Task GetArrayElementsAsync_WithMalformedJsonTextAndUtf8Strings_ReturnsExactStringValues()
+    {
+        // Arrange
+        await using var dbContext = CreateDbContext();
+        var store = new WriteOnceJsonStore(dbContext);
+        var malformedJsonText = """{"bad":"json", "oops": [1,2,3,,]}""";
+        var utf8Text = "Snowman ☃️ · Math ∑ · Cyrillic Привет · Chinese 汉字 · Currency €";
+        var payload = JsonSerializer.Serialize(new[]
+        {
+            malformedJsonText,
+            utf8Text
+        });
+        await store.StoreAsync("malformed-and-utf8-array-key", payload);
+        var values = new List<JsonElement>();
+
+        // Act
+        await foreach (var element in store.GetArrayElementsAsync("malformed-and-utf8-array-key"))
+        {
+            values.Add(element);
+        }
+
+        // Assert
+        await Assert.That(values.Count).IsEqualTo(2);
+        await Assert.That(values[0].ValueKind).IsEqualTo(JsonValueKind.String);
+        await Assert.That(values[1].ValueKind).IsEqualTo(JsonValueKind.String);
+        await Assert.That(values[0].GetString()).IsEqualTo(malformedJsonText);
+        await Assert.That(values[1].GetString()).IsEqualTo(utf8Text);
     }
 
     [Test]
