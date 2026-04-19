@@ -98,6 +98,45 @@ public class JsonStoreBehaviorTests
     }
 
     [Test]
+    public async Task GetObjectPropertiesAsync_WithComplexStringProperties_ReturnsExactStringValues()
+    {
+        // Arrange
+        await using var dbContext = CreateDbContext();
+        var store = new WriteOnceJsonStore(dbContext);
+        var embeddedJsonText = """{"nested":[1,2,{"k":"v"}]}""";
+        var markdownText = """
+# Edge case title
+
+- bullet 1
+- bullet 2
+
+```json
+{"a":1}
+```
+""";
+        var payload = JsonSerializer.Serialize(new
+        {
+            embeddedJson = embeddedJsonText,
+            markdown = markdownText
+        });
+        await store.StoreAsync("complex-object-key", payload);
+        var values = new List<JsonElement>();
+
+        // Act
+        await foreach (var propertyValue in store.GetObjectPropertiesAsync("complex-object-key"))
+        {
+            values.Add(propertyValue);
+        }
+
+        // Assert
+        await Assert.That(values.Count).IsEqualTo(2);
+        await Assert.That(values[0].ValueKind).IsEqualTo(JsonValueKind.String);
+        await Assert.That(values[1].ValueKind).IsEqualTo(JsonValueKind.String);
+        await Assert.That(values[0].GetString()).IsEqualTo(embeddedJsonText);
+        await Assert.That(values[1].GetString()).IsEqualTo(markdownText);
+    }
+
+    [Test]
     public async Task GetArrayElementsAsync_WithArrayValue_ReturnsElements()
     {
         // Arrange
@@ -114,6 +153,44 @@ public class JsonStoreBehaviorTests
 
         // Assert
         await Assert.That(elements).IsEquivalentTo(["{\"id\":1}", "{\"id\":2}", "3"]);
+    }
+
+    [Test]
+    public async Task GetArrayElementsAsync_WithComplexStringElements_ReturnsExactStringValues()
+    {
+        // Arrange
+        await using var dbContext = CreateDbContext();
+        var store = new WriteOnceJsonStore(dbContext);
+        var embeddedJsonText = """{"outer":{"inner":[true,false]}}""";
+        var markdownText = """
+## Markdown sample
+
+> quoted line
+
+| A | B |
+| - | - |
+| 1 | 2 |
+""";
+        var payload = JsonSerializer.Serialize(new[]
+        {
+            embeddedJsonText,
+            markdownText
+        });
+        await store.StoreAsync("complex-array-key", payload);
+        var values = new List<JsonElement>();
+
+        // Act
+        await foreach (var element in store.GetArrayElementsAsync("complex-array-key"))
+        {
+            values.Add(element);
+        }
+
+        // Assert
+        await Assert.That(values.Count).IsEqualTo(2);
+        await Assert.That(values[0].ValueKind).IsEqualTo(JsonValueKind.String);
+        await Assert.That(values[1].ValueKind).IsEqualTo(JsonValueKind.String);
+        await Assert.That(values[0].GetString()).IsEqualTo(embeddedJsonText);
+        await Assert.That(values[1].GetString()).IsEqualTo(markdownText);
     }
 
     [Test]
