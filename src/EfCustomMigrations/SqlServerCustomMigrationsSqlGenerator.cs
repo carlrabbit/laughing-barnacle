@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
 
 namespace EfCustomMigrations;
@@ -10,7 +11,7 @@ public sealed class SqlServerCustomMigrationsSqlGenerator(
     ICommandBatchPreparer commandBatchPreparer)
     : SqlServerMigrationsSqlGenerator(dependencies, commandBatchPreparer)
 {
-    private Microsoft.EntityFrameworkCore.Storage.RelationalTypeMapping? stringTypeMapping;
+    private RelationalTypeMapping? stringTypeMapping;
 
     protected override void Generate(MigrationOperation operation, IModel? model, MigrationCommandListBuilder builder)
     {
@@ -156,7 +157,7 @@ public sealed class SqlServerCustomMigrationsSqlGenerator(
         {
             builder.AppendLine($"IF SCHEMA_ID({schemaNameLiteral}) IS NULL")
                 .AppendLine("BEGIN")
-                .AppendLine($"    EXEC('CREATE SCHEMA {delimitedSchemaName} AUTHORIZATION {delimitedOwner};')")
+                .AppendLine($"    CREATE SCHEMA {delimitedSchemaName} AUTHORIZATION {delimitedOwner};")
                 .AppendLine("END;");
         }
         else
@@ -221,7 +222,7 @@ public sealed class SqlServerCustomMigrationsSqlGenerator(
         builder.EndCommand();
     }
 
-    private Microsoft.EntityFrameworkCore.Storage.RelationalTypeMapping StringTypeMapping =>
+    private RelationalTypeMapping StringTypeMapping =>
         stringTypeMapping ??= Dependencies.TypeMappingSource.FindMapping(typeof(string))
         ?? throw new InvalidOperationException("Could not resolve string type mapping.");
 }

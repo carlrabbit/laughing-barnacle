@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Migrations;
 
@@ -11,7 +12,7 @@ public sealed class PostgreSqlCustomMigrationsSqlGenerator(
     INpgsqlSingletonOptions npgsqlSingletonOptions)
     : NpgsqlMigrationsSqlGenerator(dependencies, npgsqlSingletonOptions)
 {
-    private Microsoft.EntityFrameworkCore.Storage.RelationalTypeMapping? stringTypeMapping;
+    private RelationalTypeMapping? stringTypeMapping;
 
     protected override void Generate(MigrationOperation operation, IModel? model, MigrationCommandListBuilder builder)
     {
@@ -203,7 +204,7 @@ public sealed class PostgreSqlCustomMigrationsSqlGenerator(
         builder.EndCommand();
     }
 
-    private Microsoft.EntityFrameworkCore.Storage.RelationalTypeMapping StringTypeMapping =>
+    private RelationalTypeMapping StringTypeMapping =>
         stringTypeMapping ??= Dependencies.TypeMappingSource.FindMapping(typeof(string))
         ?? throw new InvalidOperationException("Could not resolve string type mapping.");
 }
