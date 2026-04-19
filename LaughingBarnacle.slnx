@@ -5,6 +5,7 @@
   <Folder Name="/src/">
     <Project Path="src/Bincli/Bincli.csproj" />
     <Project Path="src/Binstore/Binstore.csproj" />
+    <Project Path="src/EfCustomMigrations/EfCustomMigrations.csproj" />
     <Project Path="src/Jsoncli/Jsoncli.csproj" />
     <Project Path="src/Jsonstore/Jsonstore.csproj" />
     <Project Path="src/Kvcli/Kvcli.csproj" />
@@ -14,6 +15,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Binstore.Tests/Binstore.Tests.csproj" />
+    <Project Path="tests/EfCustomMigrations.Tests/EfCustomMigrations.Tests.csproj" />
     <Project Path="tests/Jsonstore.Tests/Jsonstore.Tests.csproj" />
     <Project Path="tests/Kvstore.Tests/Kvstore.Tests.csproj" />
     <Project Path="tests/LaughingBarnacle.Tests/LaughingBarnacle.Tests.csproj" />
