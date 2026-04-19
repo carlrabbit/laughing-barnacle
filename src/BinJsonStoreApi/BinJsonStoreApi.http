@@ -1,0 +1,6 @@
+@BinJsonStoreApi_HostAddress = http://localhost:5125
+
+GET {{BinJsonStoreApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
