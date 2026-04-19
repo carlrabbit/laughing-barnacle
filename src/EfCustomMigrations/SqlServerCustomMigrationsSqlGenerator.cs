@@ -10,6 +10,8 @@ public sealed class SqlServerCustomMigrationsSqlGenerator(
     ICommandBatchPreparer commandBatchPreparer)
     : SqlServerMigrationsSqlGenerator(dependencies, commandBatchPreparer)
 {
+    private Microsoft.EntityFrameworkCore.Storage.RelationalTypeMapping? stringTypeMapping;
+
     protected override void Generate(MigrationOperation operation, IModel? model, MigrationCommandListBuilder builder)
     {
         switch (operation)
@@ -220,6 +222,6 @@ public sealed class SqlServerCustomMigrationsSqlGenerator(
     }
 
     private Microsoft.EntityFrameworkCore.Storage.RelationalTypeMapping StringTypeMapping =>
-        Dependencies.TypeMappingSource.FindMapping(typeof(string))
+        stringTypeMapping ??= Dependencies.TypeMappingSource.FindMapping(typeof(string))
         ?? throw new InvalidOperationException("Could not resolve string type mapping.");
 }

@@ -24,13 +24,13 @@ options.UseNpgsql(connectionString)
 
 ## Included operations
 
-- `CreateSqlUser`
-- `CreateSqlLoginOrRole`
-- `GrantSchemaOrTablePrivileges`
-- `CreateSchemaWithOwner`
-- `SeedIdempotentSql`
-- `SetDatabaseOption`
-- `SetIndexStorageParameter`
+- `CreateSqlUser` - Creates a database user/role with password support from direct value or environment variable.
+- `CreateSqlLoginOrRole` - Creates login-role principals and applies scoped role memberships.
+- `GrantSchemaOrTablePrivileges` - Grants schema-level or table-level privileges to a principal.
+- `CreateSchemaWithOwner` - Creates a schema and enforces ownership assignment.
+- `SeedIdempotentSql` - Executes custom SQL only once per seed key using migration seed history tracking.
+- `SetDatabaseOption` - Applies database-level options such as collation/compatibility (SQL Server) and runtime settings.
+- `SetIndexStorageParameter` - Applies provider-specific index tuning/storage parameters.
 
 ## `CreateSqlUser` usage
 
@@ -116,7 +116,7 @@ migrationBuilder.SetDatabaseOption("work_mem", "64MB");
 - PostgreSQL supports `ALTER DATABASE CURRENT SET ...`.
 - PostgreSQL does **not** support SQL Server compatibility level semantics; unsupported options throw.
 
-## Separate chapter: common provider-specific index/storage tuning
+## Provider-Specific Index and Storage Tuning
 
 Some high-impact tuning options are provider specific and not always modeled the same way in EF Core.
 Use `SetIndexStorageParameter` for these cases.
