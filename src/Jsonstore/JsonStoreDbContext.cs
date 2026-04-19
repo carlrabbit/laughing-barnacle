@@ -18,6 +18,7 @@ public sealed class JsonStoreDbContext(DbContextOptions<JsonStoreDbContext> opti
         jsons.HasIndex(x => x.KeyHash).IsUnique();
         jsons.Property(x => x.Key).IsRequired();
         jsons.Property(x => x.KeyHash).IsRequired().HasMaxLength(64);
+        jsons.Property(x => x.JsonType).IsRequired();
         jsons.Property(x => x.CreatedUtc).IsRequired();
         jsons.Property(x => x.TotalBytes).IsRequired();
         jsons.Property(x => x.ChunkCount).IsRequired();

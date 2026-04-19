@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Jsonstore;
 
 namespace Jsoncli;
@@ -15,4 +16,13 @@ public sealed class JsonClient(IWriteOnceJsonStore store) : IJsonClient
 
     public Task<string?> GetStringAsync(string key, CancellationToken cancellationToken = default) =>
         store.GetStringAsync(key, cancellationToken);
+
+    public Task<JsonRootType?> GetJsonTypeAsync(string key, CancellationToken cancellationToken = default) =>
+        store.GetJsonTypeAsync(key, cancellationToken);
+
+    public IAsyncEnumerable<JsonElement> GetObjectPropertiesAsync(string key, CancellationToken cancellationToken = default) =>
+        store.GetObjectPropertiesAsync(key, cancellationToken);
+
+    public IAsyncEnumerable<JsonElement> GetArrayElementsAsync(string key, CancellationToken cancellationToken = default) =>
+        store.GetArrayElementsAsync(key, cancellationToken);
 }

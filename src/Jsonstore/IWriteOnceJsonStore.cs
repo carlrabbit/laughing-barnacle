@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Jsonstore;
 
 public interface IWriteOnceJsonStore
@@ -9,4 +11,10 @@ public interface IWriteOnceJsonStore
     Task<Stream?> GetStreamAsync(string key, CancellationToken cancellationToken = default);
 
     Task<string?> GetStringAsync(string key, CancellationToken cancellationToken = default);
+
+    Task<JsonRootType?> GetJsonTypeAsync(string key, CancellationToken cancellationToken = default);
+
+    IAsyncEnumerable<JsonElement> GetObjectPropertiesAsync(string key, CancellationToken cancellationToken = default);
+
+    IAsyncEnumerable<JsonElement> GetArrayElementsAsync(string key, CancellationToken cancellationToken = default);
 }
