@@ -45,7 +45,7 @@ namespace BinJsonStoreApi.Client
             ApiClientBuilder.RegisterDefaultDeserializer<FormParseNodeFactory>();
             if (string.IsNullOrEmpty(RequestAdapter.BaseUrl))
             {
-                RequestAdapter.BaseUrl = "http://127.0.0.1:5077";
+                RequestAdapter.BaseUrl = "http://127.0.0.1:5099";
             }
             PathParameters.TryAdd("baseurl", RequestAdapter.BaseUrl);
         }

@@ -116,7 +116,9 @@ app.MapGet("/json/{key}/object-properties-stream", async Task<IResult> (
 
     if (jsonType != JsonRootType.Object)
     {
-        return Results.BadRequest(new { Detail = "Stored JSON root type is not an object." });
+        return Results.Problem(
+            detail: "Stored JSON root type is not an object.",
+            statusCode: StatusCodes.Status400BadRequest);
     }
 
     httpContext.Response.ContentType = "application/x-ndjson";
@@ -151,7 +153,9 @@ app.MapGet("/json/{key}/array-elements-stream", async Task<IResult> (
 
     if (jsonType != JsonRootType.Array)
     {
-        return Results.BadRequest(new { Detail = "Stored JSON root type is not an array." });
+        return Results.Problem(
+            detail: "Stored JSON root type is not an array.",
+            statusCode: StatusCodes.Status400BadRequest);
     }
 
     httpContext.Response.ContentType = "application/x-ndjson";
