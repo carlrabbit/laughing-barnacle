@@ -13,6 +13,7 @@
     <Project Path="src/Kvcli/Kvcli.csproj" />
     <Project Path="src/Kvstore/Kvstore.csproj" />
     <Project Path="src/LaughingBarnacle/LaughingBarnacle.csproj" />
+    <Project Path="src/Statistics/Statistics.csproj" />
     <Project Path="src/Yaof/Yaof.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -22,6 +23,7 @@
     <Project Path="tests/Jsonstore.Tests/Jsonstore.Tests.csproj" />
     <Project Path="tests/Kvstore.Tests/Kvstore.Tests.csproj" />
     <Project Path="tests/LaughingBarnacle.Tests/LaughingBarnacle.Tests.csproj" />
+    <Project Path="tests/Statistics.Tests/Statistics.Tests.csproj" />
     <Project Path="tests/Yaof.Tests/Yaof.Tests.csproj" />
   </Folder>
 </Solution>
