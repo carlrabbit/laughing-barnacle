@@ -59,7 +59,9 @@ public sealed class OnlineDescriptiveStatistics
         {
             if (quantile is <= 0 or >= 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(quantile), "Quantile must be between 0 and 1.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(quantile),
+                    "Quantile must be greater than 0 and less than 1.");
             }
 
             this.quantile = quantile;
