@@ -50,9 +50,9 @@ public class OnlineDescriptiveStatisticsTests
         var sut = new OnlineDescriptiveStatistics();
 
         // Act
-        var nanUpdate = async () => await Task.Run(() => sut.Update(double.NaN));
-        var positiveInfinityUpdate = async () => await Task.Run(() => sut.Update(double.PositiveInfinity));
-        var negativeInfinityUpdate = async () => await Task.Run(() => sut.Update(double.NegativeInfinity));
+        Action nanUpdate = () => sut.Update(double.NaN);
+        Action positiveInfinityUpdate = () => sut.Update(double.PositiveInfinity);
+        Action negativeInfinityUpdate = () => sut.Update(double.NegativeInfinity);
 
         // Assert
         await Assert.That(nanUpdate).Throws<ArgumentOutOfRangeException>();

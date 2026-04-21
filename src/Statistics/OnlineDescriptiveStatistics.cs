@@ -97,18 +97,14 @@ public sealed class OnlineDescriptiveStatistics
             {
                 markerIndex = 2;
             }
-            else if (value <= markerHeights[4])
-            {
-                markerIndex = 3;
-            }
-            else if (value > markerHeights[4])
-            {
-                markerIndex = 3;
-                markerHeights[4] = value;
-            }
             else
             {
                 markerIndex = 3;
+
+                if (value > markerHeights[4])
+                {
+                    markerHeights[4] = value;
+                }
             }
 
             for (var i = markerIndex + 1; i < markerPositions.Length; i++)
