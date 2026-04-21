@@ -112,4 +112,45 @@ public class OnlineDescriptiveStatisticsTests
         await Assert.That(snapshot.Max).IsEqualTo(100d);
         await Assert.That(snapshot.Variance).IsEqualTo(833.25);
     }
+
+    [Test]
+    public async Task GetSnapshot_DuringConcurrentUpdates_ProducesConsistentInvariantValues()
+    {
+        // Arrange
+        var sut = new OnlineDescriptiveStatistics();
+        const int workerCount = 4;
+        const int iterationsPerWorker = 5000;
+        var workers = Enumerable.Range(0, workerCount)
+            .Select(_ => Task.Run(() =>
+            {
+                for (var i = 0; i < iterationsPerWorker; i++)
+                {
+                    sut.Update((i % 1000) + 1);
+                }
+            }))
+            .ToArray();
+
+        // Act
+        while (workers.Any(worker => !worker.IsCompleted))
+        {
+            var snapshot = sut.GetSnapshot();
+            if (snapshot.Count > 0)
+            {
+                await Assert.That(snapshot.Min <= snapshot.Max).IsTrue();
+                await Assert.That(snapshot.Mean >= snapshot.Min).IsTrue();
+                await Assert.That(snapshot.Mean <= snapshot.Max).IsTrue();
+                await Assert.That(snapshot.Percentile05 >= snapshot.Min).IsTrue();
+                await Assert.That(snapshot.Percentile95 <= snapshot.Max).IsTrue();
+                await Assert.That(snapshot.StandardDeviation >= 0).IsTrue();
+            }
+
+            await Task.Yield();
+        }
+
+        await Task.WhenAll(workers);
+
+        // Assert
+        var finalSnapshot = sut.GetSnapshot();
+        await Assert.That(finalSnapshot.Count).IsEqualTo(workerCount * iterationsPerWorker);
+    }
 }

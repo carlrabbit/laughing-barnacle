@@ -1,5 +1,9 @@
 namespace Statistics;
 
+/// <summary>
+/// Collects descriptive statistics using lock-free updates.
+/// Use <see cref="GetSnapshot"/> when reading multiple statistics that must come from one consistent point in time.
+/// </summary>
 public sealed class OnlineDescriptiveStatistics
 {
     private State state = State.Empty;
@@ -57,7 +61,7 @@ public sealed class OnlineDescriptiveStatistics
         public static readonly State Empty = new(
             count: 0,
             mean: double.NaN,
-            m2: double.NaN,
+            m2: 0,
             min: double.NaN,
             max: double.NaN,
             percentile05: P2QuantileEstimatorState.Create(0.05),
@@ -180,7 +184,7 @@ public sealed class OnlineDescriptiveStatistics
                 quantile,
                 increments: [0, quantile / 2, quantile, (1 + quantile) / 2, 1],
                 initialized: false,
-                initialSamples: new double[5],
+                initialSamples: [],
                 initialSampleCount: 0,
                 markerHeights: [],
                 markerPositions: [],
@@ -191,7 +195,9 @@ public sealed class OnlineDescriptiveStatistics
         {
             if (!Initialized)
             {
-                var nextInitialSamples = (double[])initialSamples.Clone();
+                var nextInitialSamples = initialSamples.Length == 0
+                    ? new double[5]
+                    : (double[])initialSamples.Clone();
                 nextInitialSamples[initialSampleCount] = value;
                 var nextInitialSampleCount = initialSampleCount + 1;
 
