@@ -2,25 +2,17 @@ namespace Statistics;
 
 public sealed class OnlineDescriptiveStatistics
 {
-    private readonly P2QuantileEstimator percentile05Estimator = new(0.05);
-    private readonly P2QuantileEstimator medianEstimator = new(0.5);
-    private readonly P2QuantileEstimator percentile95Estimator = new(0.95);
+    private State state = State.Empty;
 
-    private long count;
-    private double mean;
-    private double m2;
-    private double min = double.PositiveInfinity;
-    private double max = double.NegativeInfinity;
-
-    public long Count => count;
-    public double Mean => count == 0 ? double.NaN : mean;
-    public double Median => medianEstimator.GetEstimate();
-    public double Max => count == 0 ? double.NaN : max;
-    public double Min => count == 0 ? double.NaN : min;
-    public double Variance => count == 0 ? double.NaN : m2 / count;
-    public double StandardDeviation => count == 0 ? double.NaN : Math.Sqrt(Variance);
-    public double Percentile95 => percentile95Estimator.GetEstimate();
-    public double Percentile05 => percentile05Estimator.GetEstimate();
+    public long Count => Volatile.Read(ref state).Count;
+    public double Mean => Volatile.Read(ref state).Mean;
+    public double Median => Volatile.Read(ref state).Median;
+    public double Max => Volatile.Read(ref state).Max;
+    public double Min => Volatile.Read(ref state).Min;
+    public double Variance => Volatile.Read(ref state).Variance;
+    public double StandardDeviation => Volatile.Read(ref state).StandardDeviation;
+    public double Percentile95 => Volatile.Read(ref state).Percentile95;
+    public double Percentile05 => Volatile.Read(ref state).Percentile05;
 
     public void Update(double value)
     {
@@ -29,33 +21,135 @@ public sealed class OnlineDescriptiveStatistics
             throw new ArgumentOutOfRangeException(nameof(value), "Value must be finite.");
         }
 
-        count++;
+        var spinWait = new SpinWait();
 
-        var delta = value - mean;
-        mean += delta / count;
-        var delta2 = value - mean;
-        m2 += delta * delta2;
+        while (true)
+        {
+            var snapshot = Volatile.Read(ref state);
+            var updated = snapshot.Add(value);
 
-        min = Math.Min(min, value);
-        max = Math.Max(max, value);
+            if (ReferenceEquals(Interlocked.CompareExchange(ref state, updated, snapshot), snapshot))
+            {
+                return;
+            }
 
-        percentile05Estimator.Add(value);
-        medianEstimator.Add(value);
-        percentile95Estimator.Add(value);
+            spinWait.SpinOnce();
+        }
     }
 
-    private sealed class P2QuantileEstimator
+    private sealed class State
     {
-        private readonly List<double> initialSamples = [];
-        private readonly double[] markerHeights = new double[5];
-        private readonly int[] markerPositions = new int[5];
-        private readonly double[] desiredPositions = new double[5];
-        private readonly double[] increments;
+        public static readonly State Empty = new(
+            count: 0,
+            mean: double.NaN,
+            m2: double.NaN,
+            min: double.NaN,
+            max: double.NaN,
+            percentile05: P2QuantileEstimatorState.Create(0.05),
+            median: P2QuantileEstimatorState.Create(0.5),
+            percentile95: P2QuantileEstimatorState.Create(0.95));
+
+        private readonly P2QuantileEstimatorState percentile05;
+        private readonly P2QuantileEstimatorState median;
+        private readonly P2QuantileEstimatorState percentile95;
+        private readonly double mean;
+        private readonly double m2;
+        private readonly double min;
+        private readonly double max;
+
+        public State(
+            long count,
+            double mean,
+            double m2,
+            double min,
+            double max,
+            P2QuantileEstimatorState percentile05,
+            P2QuantileEstimatorState median,
+            P2QuantileEstimatorState percentile95)
+        {
+            Count = count;
+            this.mean = mean;
+            this.m2 = m2;
+            this.min = min;
+            this.max = max;
+            this.percentile05 = percentile05;
+            this.median = median;
+            this.percentile95 = percentile95;
+        }
+
+        public long Count { get; }
+        public double Mean => Count == 0 ? double.NaN : mean;
+        public double Median => median.GetEstimate();
+        public double Max => Count == 0 ? double.NaN : max;
+        public double Min => Count == 0 ? double.NaN : min;
+        public double Variance => Count == 0 ? double.NaN : m2 / Count;
+        public double StandardDeviation => Count == 0 ? double.NaN : Math.Sqrt(Variance);
+        public double Percentile95 => percentile95.GetEstimate();
+        public double Percentile05 => percentile05.GetEstimate();
+
+        public State Add(double value)
+        {
+            if (Count == 0)
+            {
+                return new State(
+                    count: 1,
+                    mean: value,
+                    m2: 0,
+                    min: value,
+                    max: value,
+                    percentile05: percentile05.Add(value),
+                    median: median.Add(value),
+                    percentile95: percentile95.Add(value));
+            }
+
+            var nextCount = Count + 1;
+            var delta = value - mean;
+            var nextMean = mean + (delta / nextCount);
+            var delta2 = value - nextMean;
+            var nextM2 = m2 + (delta * delta2);
+
+            return new State(
+                count: nextCount,
+                mean: nextMean,
+                m2: nextM2,
+                min: Math.Min(min, value),
+                max: Math.Max(max, value),
+                percentile05: percentile05.Add(value),
+                median: median.Add(value),
+                percentile95: percentile95.Add(value));
+        }
+    }
+
+    private sealed class P2QuantileEstimatorState
+    {
         private readonly double quantile;
+        private readonly double[] increments;
+        private readonly double[] initialSamples;
+        private readonly double[] markerHeights;
+        private readonly int[] markerPositions;
+        private readonly double[] desiredPositions;
 
-        private bool initialized;
+        private P2QuantileEstimatorState(
+            double quantile,
+            double[] increments,
+            bool initialized,
+            double[] initialSamples,
+            double[] markerHeights,
+            int[] markerPositions,
+            double[] desiredPositions)
+        {
+            this.quantile = quantile;
+            this.increments = increments;
+            Initialized = initialized;
+            this.initialSamples = initialSamples;
+            this.markerHeights = markerHeights;
+            this.markerPositions = markerPositions;
+            this.desiredPositions = desiredPositions;
+        }
 
-        public P2QuantileEstimator(double quantile)
+        private bool Initialized { get; }
+
+        public static P2QuantileEstimatorState Create(double quantile)
         {
             if (quantile is <= 0 or >= 1)
             {
@@ -64,139 +158,168 @@ public sealed class OnlineDescriptiveStatistics
                     "Quantile must be greater than 0 and less than 1.");
             }
 
-            this.quantile = quantile;
-            increments = [0, quantile / 2, quantile, (1 + quantile) / 2, 1];
+            return new P2QuantileEstimatorState(
+                quantile,
+                increments: [0, quantile / 2, quantile, (1 + quantile) / 2, 1],
+                initialized: false,
+                initialSamples: [],
+                markerHeights: [],
+                markerPositions: [],
+                desiredPositions: []);
         }
 
-        public void Add(double value)
+        public P2QuantileEstimatorState Add(double value)
         {
-            if (!initialized)
+            if (!Initialized)
             {
-                initialSamples.Add(value);
-                if (initialSamples.Count == 5)
+                var nextInitialSamples = new double[initialSamples.Length + 1];
+                initialSamples.CopyTo(nextInitialSamples, 0);
+                nextInitialSamples[^1] = value;
+
+                if (nextInitialSamples.Length < 5)
                 {
-                    Initialize();
+                    return new P2QuantileEstimatorState(
+                        quantile,
+                        increments,
+                        initialized: false,
+                        initialSamples: nextInitialSamples,
+                        markerHeights: [],
+                        markerPositions: [],
+                        desiredPositions: []);
                 }
 
-                return;
+                Array.Sort(nextInitialSamples);
+                var initializedMarkerHeights = (double[])nextInitialSamples.Clone();
+                var initializedMarkerPositions = new[] { 1, 2, 3, 4, 5 };
+                var initializedDesiredPositions = new[]
+                {
+                    1d,
+                    1 + (2 * quantile),
+                    1 + (4 * quantile),
+                    3 + (2 * quantile),
+                    5d
+                };
+
+                return new P2QuantileEstimatorState(
+                    quantile,
+                    increments,
+                    initialized: true,
+                    initialSamples: [],
+                    markerHeights: initializedMarkerHeights,
+                    markerPositions: initializedMarkerPositions,
+                    desiredPositions: initializedDesiredPositions);
             }
 
+            var nextMarkerHeights = (double[])markerHeights.Clone();
+            var nextMarkerPositions = (int[])markerPositions.Clone();
+            var nextDesiredPositions = (double[])desiredPositions.Clone();
+
             int markerIndex;
-            if (value < markerHeights[0])
+            if (value < nextMarkerHeights[0])
             {
                 markerIndex = 0;
-                markerHeights[0] = value;
+                nextMarkerHeights[0] = value;
             }
-            else if (value < markerHeights[1])
+            else if (value < nextMarkerHeights[1])
             {
                 markerIndex = 0;
             }
-            else if (value < markerHeights[2])
+            else if (value < nextMarkerHeights[2])
             {
                 markerIndex = 1;
             }
-            else if (value < markerHeights[3])
+            else if (value < nextMarkerHeights[3])
             {
                 markerIndex = 2;
             }
             else
             {
                 markerIndex = 3;
-
-                if (value > markerHeights[4])
+                if (value > nextMarkerHeights[4])
                 {
-                    markerHeights[4] = value;
+                    nextMarkerHeights[4] = value;
                 }
             }
 
-            for (var i = markerIndex + 1; i < markerPositions.Length; i++)
+            for (var i = markerIndex + 1; i < nextMarkerPositions.Length; i++)
             {
-                markerPositions[i]++;
+                nextMarkerPositions[i]++;
             }
 
-            for (var i = 0; i < desiredPositions.Length; i++)
+            for (var i = 0; i < nextDesiredPositions.Length; i++)
             {
-                desiredPositions[i] += increments[i];
+                nextDesiredPositions[i] += increments[i];
             }
 
             for (var i = 1; i <= 3; i++)
             {
-                var delta = desiredPositions[i] - markerPositions[i];
-                if ((delta >= 1 && markerPositions[i + 1] - markerPositions[i] > 1)
-                    || (delta <= -1 && markerPositions[i - 1] - markerPositions[i] < -1))
+                var delta = nextDesiredPositions[i] - nextMarkerPositions[i];
+                if ((delta >= 1 && nextMarkerPositions[i + 1] - nextMarkerPositions[i] > 1)
+                    || (delta <= -1 && nextMarkerPositions[i - 1] - nextMarkerPositions[i] < -1))
                 {
                     var direction = Math.Sign(delta);
-                    var candidate = Parabolic(i, direction);
-                    if (markerHeights[i - 1] < candidate && candidate < markerHeights[i + 1])
+                    var candidate = Parabolic(nextMarkerHeights, nextMarkerPositions, i, direction);
+                    if (nextMarkerHeights[i - 1] < candidate && candidate < nextMarkerHeights[i + 1])
                     {
-                        markerHeights[i] = candidate;
+                        nextMarkerHeights[i] = candidate;
                     }
                     else
                     {
-                        markerHeights[i] = Linear(i, direction);
+                        nextMarkerHeights[i] = Linear(nextMarkerHeights, nextMarkerPositions, i, direction);
                     }
 
-                    markerPositions[i] += direction;
+                    nextMarkerPositions[i] += direction;
                 }
             }
+
+            return new P2QuantileEstimatorState(
+                quantile,
+                increments,
+                initialized: true,
+                initialSamples: [],
+                markerHeights: nextMarkerHeights,
+                markerPositions: nextMarkerPositions,
+                desiredPositions: nextDesiredPositions);
         }
 
         public double GetEstimate()
         {
-            if (initialSamples.Count == 0 && !initialized)
+            if (!Initialized)
             {
-                return double.NaN;
-            }
+                if (initialSamples.Length == 0)
+                {
+                    return double.NaN;
+                }
 
-            if (!initialized)
-            {
-                initialSamples.Sort();
-                return QuantileFromSorted(initialSamples, quantile);
+                var sortedValues = (double[])initialSamples.Clone();
+                Array.Sort(sortedValues);
+                return QuantileFromSorted(sortedValues, quantile);
             }
 
             return markerHeights[2];
         }
 
-        private void Initialize()
+        private static double Parabolic(double[] heights, int[] positions, int index, int direction)
         {
-            initialSamples.Sort();
-            for (var i = 0; i < markerHeights.Length; i++)
-            {
-                markerHeights[i] = initialSamples[i];
-                markerPositions[i] = i + 1;
-            }
+            var left = positions[index - 1];
+            var current = positions[index];
+            var right = positions[index + 1];
 
-            desiredPositions[0] = 1;
-            desiredPositions[1] = 1 + (2 * quantile);
-            desiredPositions[2] = 1 + (4 * quantile);
-            desiredPositions[3] = 3 + (2 * quantile);
-            desiredPositions[4] = 5;
-
-            initialSamples.Clear();
-            initialized = true;
-        }
-
-        private double Parabolic(int index, int direction)
-        {
-            var left = markerPositions[index - 1];
-            var current = markerPositions[index];
-            var right = markerPositions[index + 1];
-
-            var leftHeight = markerHeights[index - 1];
-            var currentHeight = markerHeights[index];
-            var rightHeight = markerHeights[index + 1];
+            var leftHeight = heights[index - 1];
+            var currentHeight = heights[index];
+            var rightHeight = heights[index + 1];
 
             return currentHeight + (direction / (double)(right - left))
                 * (((current - left + direction) * (rightHeight - currentHeight) / (right - current))
                     + ((right - current - direction) * (currentHeight - leftHeight) / (current - left)));
         }
 
-        private double Linear(int index, int direction)
+        private static double Linear(double[] heights, int[] positions, int index, int direction)
         {
             var adjacentIndex = index + direction;
-            return markerHeights[index]
-                + (direction * (markerHeights[adjacentIndex] - markerHeights[index])
-                    / (markerPositions[adjacentIndex] - markerPositions[index]));
+            return heights[index]
+                + (direction * (heights[adjacentIndex] - heights[index])
+                    / (positions[adjacentIndex] - positions[index]));
         }
 
         private static double QuantileFromSorted(IReadOnlyList<double> sortedValues, double quantileValue)

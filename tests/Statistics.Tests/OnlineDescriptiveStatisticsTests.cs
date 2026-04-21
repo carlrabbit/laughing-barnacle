@@ -59,4 +59,36 @@ public class OnlineDescriptiveStatisticsTests
         await Assert.That(positiveInfinityUpdate).Throws<ArgumentOutOfRangeException>();
         await Assert.That(negativeInfinityUpdate).Throws<ArgumentOutOfRangeException>();
     }
+
+    [Test]
+    public async Task Update_WithConcurrentWriters_RemainsThreadSafeAndAccurate()
+    {
+        // Arrange
+        var sut = new OnlineDescriptiveStatistics();
+        const int workerCount = 8;
+        const int valuesPerWorker = 1000;
+        var workers = Enumerable.Range(0, workerCount)
+            .Select(_ => Task.Run(() =>
+            {
+                for (var value = 1; value <= valuesPerWorker; value++)
+                {
+                    sut.Update(value);
+                }
+            }))
+            .ToArray();
+
+        // Act
+        await Task.WhenAll(workers);
+
+        // Assert
+        await Assert.That(sut.Count).IsEqualTo(workerCount * valuesPerWorker);
+        await Assert.That(Math.Abs(sut.Mean - 500.5)).IsLessThan(1e-9);
+        await Assert.That(Math.Abs(sut.Variance - 83333.25)).IsLessThan(1e-6);
+        await Assert.That(sut.Min).IsEqualTo(1d);
+        await Assert.That(sut.Max).IsEqualTo(1000d);
+        await Assert.That(sut.Median).IsGreaterThanOrEqualTo(480d);
+        await Assert.That(sut.Median).IsLessThanOrEqualTo(520d);
+        await Assert.That(sut.Percentile05).IsGreaterThanOrEqualTo(40d);
+        await Assert.That(sut.Percentile95).IsLessThanOrEqualTo(960d);
+    }
 }
