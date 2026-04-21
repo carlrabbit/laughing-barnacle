@@ -91,4 +91,25 @@ public class OnlineDescriptiveStatisticsTests
         await Assert.That(sut.Percentile05).IsGreaterThanOrEqualTo(40d);
         await Assert.That(sut.Percentile95).IsLessThanOrEqualTo(960d);
     }
+
+    [Test]
+    public async Task GetSnapshot_AfterUpdates_ReturnsConsistentStatisticsView()
+    {
+        // Arrange
+        var sut = new OnlineDescriptiveStatistics();
+        for (var value = 1; value <= 100; value++)
+        {
+            sut.Update(value);
+        }
+
+        // Act
+        var snapshot = sut.GetSnapshot();
+
+        // Assert
+        await Assert.That(snapshot.Count).IsEqualTo(100);
+        await Assert.That(snapshot.Mean).IsEqualTo(50.5);
+        await Assert.That(snapshot.Min).IsEqualTo(1d);
+        await Assert.That(snapshot.Max).IsEqualTo(100d);
+        await Assert.That(snapshot.Variance).IsEqualTo(833.25);
+    }
 }

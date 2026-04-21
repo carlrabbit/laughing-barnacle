@@ -4,6 +4,21 @@ public sealed class OnlineDescriptiveStatistics
 {
     private State state = State.Empty;
 
+    public StatisticsSnapshot GetSnapshot()
+    {
+        var snapshot = Volatile.Read(ref state);
+        return new StatisticsSnapshot(
+            snapshot.Count,
+            snapshot.Mean,
+            snapshot.Median,
+            snapshot.Min,
+            snapshot.Max,
+            snapshot.Variance,
+            snapshot.StandardDeviation,
+            snapshot.Percentile05,
+            snapshot.Percentile95);
+    }
+
     public long Count => Volatile.Read(ref state).Count;
     public double Mean => Volatile.Read(ref state).Mean;
     public double Median => Volatile.Read(ref state).Median;
@@ -125,6 +140,7 @@ public sealed class OnlineDescriptiveStatistics
         private readonly double quantile;
         private readonly double[] increments;
         private readonly double[] initialSamples;
+        private readonly int initialSampleCount;
         private readonly double[] markerHeights;
         private readonly int[] markerPositions;
         private readonly double[] desiredPositions;
@@ -134,6 +150,7 @@ public sealed class OnlineDescriptiveStatistics
             double[] increments,
             bool initialized,
             double[] initialSamples,
+            int initialSampleCount,
             double[] markerHeights,
             int[] markerPositions,
             double[] desiredPositions)
@@ -142,6 +159,7 @@ public sealed class OnlineDescriptiveStatistics
             this.increments = increments;
             Initialized = initialized;
             this.initialSamples = initialSamples;
+            this.initialSampleCount = initialSampleCount;
             this.markerHeights = markerHeights;
             this.markerPositions = markerPositions;
             this.desiredPositions = desiredPositions;
@@ -162,7 +180,8 @@ public sealed class OnlineDescriptiveStatistics
                 quantile,
                 increments: [0, quantile / 2, quantile, (1 + quantile) / 2, 1],
                 initialized: false,
-                initialSamples: [],
+                initialSamples: new double[5],
+                initialSampleCount: 0,
                 markerHeights: [],
                 markerPositions: [],
                 desiredPositions: []);
@@ -172,23 +191,24 @@ public sealed class OnlineDescriptiveStatistics
         {
             if (!Initialized)
             {
-                var nextInitialSamples = new double[initialSamples.Length + 1];
-                initialSamples.CopyTo(nextInitialSamples, 0);
-                nextInitialSamples[^1] = value;
+                var nextInitialSamples = (double[])initialSamples.Clone();
+                nextInitialSamples[initialSampleCount] = value;
+                var nextInitialSampleCount = initialSampleCount + 1;
 
-                if (nextInitialSamples.Length < 5)
+                if (nextInitialSampleCount < 5)
                 {
                     return new P2QuantileEstimatorState(
                         quantile,
                         increments,
                         initialized: false,
                         initialSamples: nextInitialSamples,
+                        initialSampleCount: nextInitialSampleCount,
                         markerHeights: [],
                         markerPositions: [],
                         desiredPositions: []);
                 }
 
-                Array.Sort(nextInitialSamples);
+                Array.Sort(nextInitialSamples, 0, nextInitialSampleCount);
                 var initializedMarkerHeights = (double[])nextInitialSamples.Clone();
                 var initializedMarkerPositions = new[] { 1, 2, 3, 4, 5 };
                 var initializedDesiredPositions = new[]
@@ -205,6 +225,7 @@ public sealed class OnlineDescriptiveStatistics
                     increments,
                     initialized: true,
                     initialSamples: [],
+                    initialSampleCount: 0,
                     markerHeights: initializedMarkerHeights,
                     markerPositions: initializedMarkerPositions,
                     desiredPositions: initializedDesiredPositions);
@@ -277,6 +298,7 @@ public sealed class OnlineDescriptiveStatistics
                 increments,
                 initialized: true,
                 initialSamples: [],
+                initialSampleCount: 0,
                 markerHeights: nextMarkerHeights,
                 markerPositions: nextMarkerPositions,
                 desiredPositions: nextDesiredPositions);
@@ -286,14 +308,14 @@ public sealed class OnlineDescriptiveStatistics
         {
             if (!Initialized)
             {
-                if (initialSamples.Length == 0)
+                if (initialSampleCount == 0)
                 {
                     return double.NaN;
                 }
 
                 var sortedValues = (double[])initialSamples.Clone();
-                Array.Sort(sortedValues);
-                return QuantileFromSorted(sortedValues, quantile);
+                Array.Sort(sortedValues, 0, initialSampleCount);
+                return QuantileFromSorted(sortedValues, initialSampleCount, quantile);
             }
 
             return markerHeights[2];
@@ -322,14 +344,14 @@ public sealed class OnlineDescriptiveStatistics
                     / (positions[adjacentIndex] - positions[index]));
         }
 
-        private static double QuantileFromSorted(IReadOnlyList<double> sortedValues, double quantileValue)
+        private static double QuantileFromSorted(IReadOnlyList<double> sortedValues, int count, double quantileValue)
         {
-            if (sortedValues.Count == 1)
+            if (count == 1)
             {
                 return sortedValues[0];
             }
 
-            var rank = quantileValue * (sortedValues.Count - 1);
+            var rank = quantileValue * (count - 1);
             var lowerIndex = (int)Math.Floor(rank);
             var upperIndex = (int)Math.Ceiling(rank);
 
@@ -343,3 +365,14 @@ public sealed class OnlineDescriptiveStatistics
         }
     }
 }
+
+public readonly record struct StatisticsSnapshot(
+    long Count,
+    double Mean,
+    double Median,
+    double Min,
+    double Max,
+    double Variance,
+    double StandardDeviation,
+    double Percentile05,
+    double Percentile95);
