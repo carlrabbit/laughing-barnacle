@@ -10,30 +10,35 @@ public class FormatProjectSpecificOnSaveExtensionTests
     {
         // Arrange
         var tempDirectory = CreateTempDirectory();
-        var projectDirectory = Directory.CreateDirectory(Path.Combine(tempDirectory, "src"));
-        File.WriteAllText(Path.Combine(projectDirectory.FullName, "Sample.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
-        var filePath = Path.Combine(projectDirectory.FullName, "File.cs");
-        File.WriteAllText(filePath, "class C{}");
+        try
+        {
+            var projectDirectory = Directory.CreateDirectory(Path.Combine(tempDirectory, "src"));
+            File.WriteAllText(Path.Combine(projectDirectory.FullName, "Sample.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+            var filePath = Path.Combine(projectDirectory.FullName, "File.cs");
+            File.WriteAllText(filePath, "class C{}");
 
-        var processRunner = new FakeProcessRunner();
-        var sut = new FormatProjectSpecificOnSaveExtension(processRunner);
+            var processRunner = new FakeProcessRunner();
+            var sut = new FormatProjectSpecificOnSaveExtension(processRunner);
 
-        // Act
-        await sut.BeforeSaveAsync(filePath);
+            // Act
+            await sut.BeforeSaveAsync(filePath);
 
-        // Assert
-        await Assert.That(processRunner.StartInfo).IsNotNull();
-        await Assert.That(processRunner.StartInfo!.FileName).IsEqualTo("dotnet");
-        await Assert.That(processRunner.StartInfo.WorkingDirectory).IsEqualTo(projectDirectory.FullName);
-        await Assert.That(processRunner.StartInfo.ArgumentList.Count).IsEqualTo(6);
-        await Assert.That(processRunner.StartInfo.ArgumentList[0]).IsEqualTo("format");
-        await Assert.That(processRunner.StartInfo.ArgumentList[1]).IsEqualTo(projectDirectory.FullName);
-        await Assert.That(processRunner.StartInfo.ArgumentList[2]).IsEqualTo("--include");
-        await Assert.That(processRunner.StartInfo.ArgumentList[3]).IsEqualTo(filePath);
-        await Assert.That(processRunner.StartInfo.ArgumentList[4]).IsEqualTo("--verbosity");
-        await Assert.That(processRunner.StartInfo.ArgumentList[5]).IsEqualTo("minimal");
-
-        Directory.Delete(tempDirectory, recursive: true);
+            // Assert
+            await Assert.That(processRunner.StartInfo).IsNotNull();
+            await Assert.That(processRunner.StartInfo!.FileName).IsEqualTo("dotnet");
+            await Assert.That(processRunner.StartInfo.WorkingDirectory).IsEqualTo(projectDirectory.FullName);
+            await Assert.That(processRunner.StartInfo.ArgumentList.Count).IsEqualTo(6);
+            await Assert.That(processRunner.StartInfo.ArgumentList[0]).IsEqualTo("format");
+            await Assert.That(processRunner.StartInfo.ArgumentList[1]).IsEqualTo(projectDirectory.FullName);
+            await Assert.That(processRunner.StartInfo.ArgumentList[2]).IsEqualTo("--include");
+            await Assert.That(processRunner.StartInfo.ArgumentList[3]).IsEqualTo(filePath);
+            await Assert.That(processRunner.StartInfo.ArgumentList[4]).IsEqualTo("--verbosity");
+            await Assert.That(processRunner.StartInfo.ArgumentList[5]).IsEqualTo("minimal");
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
     }
 
     [Test]
@@ -41,29 +46,34 @@ public class FormatProjectSpecificOnSaveExtensionTests
     {
         // Arrange
         var tempDirectory = CreateTempDirectory();
-        var filePath = Path.Combine(tempDirectory, "File.cs");
-        File.WriteAllText(filePath, "class C{}");
+        try
+        {
+            var filePath = Path.Combine(tempDirectory, "File.cs");
+            File.WriteAllText(filePath, "class C{}");
 
-        var processRunner = new FakeProcessRunner();
-        var sut = new FormatProjectSpecificOnSaveExtension(processRunner);
+            var processRunner = new FakeProcessRunner();
+            var sut = new FormatProjectSpecificOnSaveExtension(processRunner);
 
-        // Act
-        await sut.BeforeSaveAsync(filePath);
+            // Act
+            await sut.BeforeSaveAsync(filePath);
 
-        // Assert
-        await Assert.That(processRunner.StartInfo).IsNull();
-
-        Directory.Delete(tempDirectory, recursive: true);
+            // Assert
+            await Assert.That(processRunner.StartInfo).IsNull();
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
     }
 
     [Test]
     public async Task CreateDotnetFormatStartInfo_WithMissingDocumentPath_ThrowsArgumentException()
     {
         // Arrange / Act
-        Action act = () => _ = FormatProjectSpecificOnSaveExtension.CreateDotnetFormatStartInfo("/tmp/project", "");
+        Action throwingAction = () => _ = FormatProjectSpecificOnSaveExtension.CreateDotnetFormatStartInfo("/tmp/project", "");
 
         // Assert
-        await Assert.That(act).Throws<ArgumentException>();
+        await Assert.That(throwingAction).Throws<ArgumentException>();
     }
 
     private static string CreateTempDirectory()
