@@ -5,16 +5,33 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 namespace Jsonstore;
+/// <summary>
+/// Represents write once json store.
+/// </summary>
 
 public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnceJsonStore
 {
     private const int ReadBufferSize = 16 * 1024;
+    /// <summary>
+    /// Performs the store async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="json">The json.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public Task<JsonStoreResult> StoreAsync(string key, string json, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(json);
         return StoreAsync(key, new MemoryStream(Encoding.UTF8.GetBytes(json), writable: false), cancellationToken);
     }
+    /// <summary>
+    /// Performs the store async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="jsonStream">The json stream.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public async Task<JsonStoreResult> StoreAsync(
         string key,
@@ -117,6 +134,12 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
 
         return new JsonStoreResult(true, record.Id, record.JsonType, record.TotalBytes, record.ChunkCount);
     }
+    /// <summary>
+    /// Performs the get stream async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public async Task<Stream?> GetStreamAsync(string key, CancellationToken cancellationToken = default)
     {
@@ -141,6 +164,12 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
 
         return new ChunkedReadStream(chunkEnumerator);
     }
+    /// <summary>
+    /// Performs the get string async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public async Task<string?> GetStringAsync(string key, CancellationToken cancellationToken = default)
     {
@@ -153,6 +182,12 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
         using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: false);
         return await reader.ReadToEndAsync(cancellationToken);
     }
+    /// <summary>
+    /// Performs the get json type async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public async Task<JsonRootType?> GetJsonTypeAsync(string key, CancellationToken cancellationToken = default)
     {
@@ -165,6 +200,12 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
             .Select(x => (JsonRootType?)x.JsonType)
             .SingleOrDefaultAsync(cancellationToken);
     }
+    /// <summary>
+    /// Performs the get object properties async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public async IAsyncEnumerable<JsonElement> GetObjectPropertiesAsync(
         string key,
@@ -181,6 +222,12 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
             yield return propertyValue;
         }
     }
+    /// <summary>
+    /// Performs the get array elements async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public async IAsyncEnumerable<JsonElement> GetArrayElementsAsync(
         string key,
@@ -440,9 +487,24 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
 
     private sealed class JsonStreamParserState
     {
+        /// <summary>
+        /// The current UTF-8 JSON reader state.
+        /// </summary>
         public JsonReaderState ReaderState;
+
+        /// <summary>
+        /// Indicates whether the root token has been read.
+        /// </summary>
         public bool RootRead;
+
+        /// <summary>
+        /// Indicates whether the parser is waiting for an object property value.
+        /// </summary>
         public bool AwaitingObjectPropertyValue;
+
+        /// <summary>
+        /// Indicates whether the root value has been fully parsed.
+        /// </summary>
         public bool RootCompleted;
     }
 }

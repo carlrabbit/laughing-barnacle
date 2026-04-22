@@ -1,9 +1,16 @@
 using System.Text;
 
 namespace Binstore;
+/// <summary>
+/// Represents key validation.
+/// </summary>
 
 internal static class KeyValidation
 {
+    /// <summary>
+    /// Performs the validate operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
     public static void Validate(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);

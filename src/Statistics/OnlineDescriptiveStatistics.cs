@@ -7,6 +7,10 @@ namespace Statistics;
 public sealed class OnlineDescriptiveStatistics
 {
     private State state = State.Empty;
+    /// <summary>
+    /// Gets an immutable snapshot of the current statistics.
+    /// </summary>
+    /// <returns>A snapshot containing all computed metrics at one point in time.</returns>
 
     public StatisticsSnapshot GetSnapshot()
     {
@@ -22,16 +26,56 @@ public sealed class OnlineDescriptiveStatistics
             snapshot.Percentile05,
             snapshot.Percentile95);
     }
+    /// <summary>
+    /// Gets the number of values observed.
+    /// </summary>
+    /// <returns>The number of values observed.</returns>
 
     public long Count => Volatile.Read(ref state).Count;
+    /// <summary>
+    /// Gets the arithmetic mean of all observed values.
+    /// </summary>
+    /// <returns>The arithmetic mean of all observed values.</returns>
     public double Mean => Volatile.Read(ref state).Mean;
+    /// <summary>
+    /// Performs the read operation.
+    /// </summary>
+    /// <returns>The operation result.</returns>
     public double Median => Volatile.Read(ref state).Median;
+    /// <summary>
+    /// Performs the read operation.
+    /// </summary>
+    /// <returns>The operation result.</returns>
     public double Max => Volatile.Read(ref state).Max;
+    /// <summary>
+    /// Performs the read operation.
+    /// </summary>
+    /// <returns>The operation result.</returns>
     public double Min => Volatile.Read(ref state).Min;
+    /// <summary>
+    /// Performs the read operation.
+    /// </summary>
+    /// <returns>The operation result.</returns>
     public double Variance => Volatile.Read(ref state).Variance;
+    /// <summary>
+    /// Performs the read operation.
+    /// </summary>
+    /// <returns>The operation result.</returns>
     public double StandardDeviation => Volatile.Read(ref state).StandardDeviation;
+    /// <summary>
+    /// Performs the read operation.
+    /// </summary>
+    /// <returns>The operation result.</returns>
     public double Percentile95 => Volatile.Read(ref state).Percentile95;
+    /// <summary>
+    /// Performs the read operation.
+    /// </summary>
+    /// <returns>The operation result.</returns>
     public double Percentile05 => Volatile.Read(ref state).Percentile05;
+    /// <summary>
+    /// Performs the update operation.
+    /// </summary>
+    /// <param name="value">The value.</param>
 
     public void Update(double value)
     {
@@ -58,6 +102,10 @@ public sealed class OnlineDescriptiveStatistics
 
     private sealed class State
     {
+        /// <summary>
+        /// Performs the new operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
         public static readonly State Empty = new(
             count: 0,
             mean: double.NaN,
@@ -75,6 +123,18 @@ public sealed class OnlineDescriptiveStatistics
         private readonly double m2;
         private readonly double min;
         private readonly double max;
+        /// <summary>
+        /// Performs the state operation.
+        /// </summary>
+        /// <param name="count">The count.</param>
+        /// <param name="mean">The mean.</param>
+        /// <param name="m2">The sum of squared differences from the mean.</param>
+        /// <param name="min">The min.</param>
+        /// <param name="max">The max.</param>
+        /// <param name="percentile05">The percentile 05.</param>
+        /// <param name="median">The median.</param>
+        /// <param name="percentile95">The percentile 95.</param>
+        /// <returns>The operation result.</returns>
 
         public State(
             long count,
@@ -95,16 +155,57 @@ public sealed class OnlineDescriptiveStatistics
             this.median = median;
             this.percentile95 = percentile95;
         }
+        /// <summary>
+        /// Performs the get estimate operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
 
         public long Count { get; }
+        /// <summary>
+        /// Performs the get estimate operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
         public double Mean => Count == 0 ? double.NaN : mean;
+        /// <summary>
+        /// Performs the get estimate operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
         public double Median => median.GetEstimate();
+        /// <summary>
+        /// Performs the sqrt operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
         public double Max => Count == 0 ? double.NaN : max;
+        /// <summary>
+        /// Performs the sqrt operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
         public double Min => Count == 0 ? double.NaN : min;
+        /// <summary>
+        /// Performs the sqrt operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
         public double Variance => Count == 0 ? double.NaN : m2 / Count;
+        /// <summary>
+        /// Performs the sqrt operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
         public double StandardDeviation => Count == 0 ? double.NaN : Math.Sqrt(Variance);
+        /// <summary>
+        /// Performs the get estimate operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
         public double Percentile95 => percentile95.GetEstimate();
+        /// <summary>
+        /// Performs the get estimate operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
         public double Percentile05 => percentile05.GetEstimate();
+        /// <summary>
+        /// Performs the add operation.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The operation result.</returns>
 
         public State Add(double value)
         {
@@ -170,6 +271,11 @@ public sealed class OnlineDescriptiveStatistics
         }
 
         private bool Initialized { get; }
+        /// <summary>
+        /// Performs the create operation.
+        /// </summary>
+        /// <param name="quantile">The quantile.</param>
+        /// <returns>The operation result.</returns>
 
         public static P2QuantileEstimatorState Create(double quantile)
         {
@@ -190,6 +296,11 @@ public sealed class OnlineDescriptiveStatistics
                 markerPositions: [],
                 desiredPositions: []);
         }
+        /// <summary>
+        /// Performs the add operation.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The operation result.</returns>
 
         public P2QuantileEstimatorState Add(double value)
         {
@@ -309,6 +420,10 @@ public sealed class OnlineDescriptiveStatistics
                 markerPositions: nextMarkerPositions,
                 desiredPositions: nextDesiredPositions);
         }
+        /// <summary>
+        /// Performs the get estimate operation.
+        /// </summary>
+        /// <returns>The operation result.</returns>
 
         public double GetEstimate()
         {
@@ -371,6 +486,9 @@ public sealed class OnlineDescriptiveStatistics
         }
     }
 }
+/// <summary>
+/// Represents an immutable snapshot of descriptive statistics.
+/// </summary>
 
 public readonly record struct StatisticsSnapshot(
     long Count,

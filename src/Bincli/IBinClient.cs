@@ -1,6 +1,9 @@
 using Binstore;
 
 namespace Bincli;
+/// <summary>
+/// Defines the contract for i bin client.
+/// </summary>
 
 public interface IBinClient
 {

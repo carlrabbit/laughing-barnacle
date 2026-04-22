@@ -33,6 +33,11 @@ return 0;
 /// <summary>Converts a JSON array of flat string-property objects to Markdown tables.</summary>
 public static class JsonToMarkdownConverter
 {
+    /// <summary>
+    /// Performs the convert operation.
+    /// </summary>
+    /// <param name="json">The json.</param>
+    /// <returns>The operation result.</returns>
     public static IEnumerable<string> Convert(string json)
     {
         using var doc = JsonDocument.Parse(json);
