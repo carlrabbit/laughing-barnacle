@@ -178,4 +178,7 @@ app.MapGet("/json/{key}/array-elements-stream", async Task<IResult> (
 
 app.Run();
 
+/// <summary>
+/// Represents the API entry point used by integration tests.
+/// </summary>
 public partial class Program;

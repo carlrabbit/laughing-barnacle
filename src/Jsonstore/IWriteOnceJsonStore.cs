@@ -1,6 +1,9 @@
 using System.Text.Json;
 
 namespace Jsonstore;
+/// <summary>
+/// Defines the contract for i write once json store.
+/// </summary>
 
 public interface IWriteOnceJsonStore
 {

@@ -6,6 +6,9 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Migrations;
 
 namespace EfCustomMigrations;
+/// <summary>
+/// Represents postgre sql custom migrations sql generator.
+/// </summary>
 
 public sealed class PostgreSqlCustomMigrationsSqlGenerator(
     MigrationsSqlGeneratorDependencies dependencies,
@@ -13,6 +16,12 @@ public sealed class PostgreSqlCustomMigrationsSqlGenerator(
     : NpgsqlMigrationsSqlGenerator(dependencies, npgsqlSingletonOptions)
 {
     private RelationalTypeMapping? stringTypeMapping;
+    /// <summary>
+    /// Performs the generate operation.
+    /// </summary>
+    /// <param name="operation">The operation.</param>
+    /// <param name="model">The model.</param>
+    /// <param name="builder">The builder.</param>
 
     protected override void Generate(MigrationOperation operation, IModel? model, MigrationCommandListBuilder builder)
     {
