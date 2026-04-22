@@ -3,14 +3,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Binstore;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public sealed class WriteOnceBinaryStore(BinStoreDbContext dbContext) : IWriteOnceBinaryStore
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public Task<BinStoreResult> StoreAsync(string key, byte[] value, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(value);
         return StoreAsync(key, new MemoryStream(value, writable: false), cancellationToken);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public async Task<BinStoreResult> StoreAsync(
         string key,
         Stream valueStream,
@@ -101,6 +110,9 @@ public sealed class WriteOnceBinaryStore(BinStoreDbContext dbContext) : IWriteOn
         return new BinStoreResult(true, record.Id, record.TotalBytes, record.ChunkCount);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public async Task<Stream?> GetStreamAsync(string key, CancellationToken cancellationToken = default)
     {
         KeyValidation.Validate(key);

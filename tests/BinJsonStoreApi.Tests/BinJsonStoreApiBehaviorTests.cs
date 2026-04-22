@@ -4,8 +4,14 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace BinJsonStoreApi.Tests;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public class BinJsonStoreApiBehaviorTests
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task PostAndGetBin_WithBinaryPayload_RoundTripsStreamedBytes()
     {
@@ -27,6 +33,9 @@ public class BinJsonStoreApiBehaviorTests
         await Assert.That(roundTripped).IsEquivalentTo(payload);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ObjectPropertiesStream_WithStoredObject_ReturnsNdjsonValues()
     {
@@ -48,6 +57,9 @@ public class BinJsonStoreApiBehaviorTests
         await Assert.That(lines).IsEquivalentTo(["1", "{\"nested\":true}"]);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ArrayElementsStream_WithStoredArray_ReturnsNdjsonValues()
     {

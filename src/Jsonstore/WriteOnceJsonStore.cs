@@ -6,16 +6,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Jsonstore;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnceJsonStore
 {
     private const int ReadBufferSize = 16 * 1024;
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public Task<JsonStoreResult> StoreAsync(string key, string json, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(json);
         return StoreAsync(key, new MemoryStream(Encoding.UTF8.GetBytes(json), writable: false), cancellationToken);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public async Task<JsonStoreResult> StoreAsync(
         string key,
         Stream jsonStream,
@@ -118,6 +127,9 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
         return new JsonStoreResult(true, record.Id, record.JsonType, record.TotalBytes, record.ChunkCount);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public async Task<Stream?> GetStreamAsync(string key, CancellationToken cancellationToken = default)
     {
         KeyValidation.Validate(key);
@@ -142,6 +154,9 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
         return new ChunkedReadStream(chunkEnumerator);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public async Task<string?> GetStringAsync(string key, CancellationToken cancellationToken = default)
     {
         using var stream = await GetStreamAsync(key, cancellationToken);
@@ -154,6 +169,9 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
         return await reader.ReadToEndAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public async Task<JsonRootType?> GetJsonTypeAsync(string key, CancellationToken cancellationToken = default)
     {
         KeyValidation.Validate(key);
@@ -166,6 +184,9 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
             .SingleOrDefaultAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public async IAsyncEnumerable<JsonElement> GetObjectPropertiesAsync(
         string key,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -182,6 +203,9 @@ public sealed class WriteOnceJsonStore(JsonStoreDbContext dbContext) : IWriteOnc
         }
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public async IAsyncEnumerable<JsonElement> GetArrayElementsAsync(
         string key,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)

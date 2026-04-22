@@ -3,14 +3,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Kvstore;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteOnceKeyValueStore
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public Task<WriteOnceStoreResult> StoreStringAsync(
         string key,
         string value,
         CancellationToken cancellationToken = default) =>
         StoreCoreAsync(key, KvEntryKind.String, Encoding.UTF8.GetBytes(value), cancellationToken);
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public Task<WriteOnceStoreResult> StoreBlobAsync(
         string key,
         byte[] value,
@@ -34,6 +43,9 @@ public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteO
         return await StoreCoreAsync(key, KvEntryKind.Blob, memoryStream.ToArray(), cancellationToken);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public async Task<KvReadResult?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
         KeyValidation.Validate(key);

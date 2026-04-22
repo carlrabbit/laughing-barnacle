@@ -3,8 +3,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace EfCustomMigrations;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public static class DbContextOptionsBuilderExtensions
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static DbContextOptionsBuilder UseEfCustomMigrationOperationsForSqlServer(
         this DbContextOptionsBuilder optionsBuilder)
     {
@@ -13,6 +19,9 @@ public static class DbContextOptionsBuilderExtensions
         return optionsBuilder;
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static DbContextOptionsBuilder<TContext> UseEfCustomMigrationOperationsForSqlServer<TContext>(
         this DbContextOptionsBuilder<TContext> optionsBuilder)
         where TContext : DbContext
@@ -22,6 +31,9 @@ public static class DbContextOptionsBuilderExtensions
         return optionsBuilder;
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static DbContextOptionsBuilder UseEfCustomMigrationOperationsForPostgreSql(
         this DbContextOptionsBuilder optionsBuilder)
     {
@@ -30,6 +42,9 @@ public static class DbContextOptionsBuilderExtensions
         return optionsBuilder;
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static DbContextOptionsBuilder<TContext> UseEfCustomMigrationOperationsForPostgreSql<TContext>(
         this DbContextOptionsBuilder<TContext> optionsBuilder)
         where TContext : DbContext

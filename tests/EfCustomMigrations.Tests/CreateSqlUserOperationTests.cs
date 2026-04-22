@@ -5,8 +5,14 @@ using Microsoft.EntityFrameworkCore.Migrations.Operations;
 
 namespace EfCustomMigrations.Tests;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public class CreateSqlUserOperationTests
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task CreateSqlUser_WhenNoPasswordSourceProvided_ThrowsArgumentException()
     {
@@ -18,6 +24,9 @@ public class CreateSqlUserOperationTests
             .Throws<ArgumentException>();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GenerateSqlServer_WithExplicitPassword_UsesCustomSqlGenerator()
     {
@@ -39,6 +48,9 @@ public class CreateSqlUserOperationTests
         await Assert.That(sql).Contains("IF NOT EXISTS");
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GeneratePostgreSql_WithEnvironmentVariablePassword_UsesResolvedPassword()
     {
@@ -71,6 +83,9 @@ public class CreateSqlUserOperationTests
         }
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GeneratePostgreSql_WhenEnvironmentVariableMissing_ThrowsInvalidOperationException()
     {
@@ -97,6 +112,9 @@ public class CreateSqlUserOperationTests
         }
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GenerateSqlServer_ForAdditionalOperations_GeneratesExpectedStatements()
     {
@@ -157,6 +175,9 @@ public class CreateSqlUserOperationTests
         await Assert.That(sql).Contains("REBUILD WITH (FILLFACTOR = 80)");
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GeneratePostgreSql_ForAdditionalOperations_GeneratesExpectedStatements()
     {
@@ -223,6 +244,9 @@ public class CreateSqlUserOperationTests
         await Assert.That(sql).Contains("ALTER INDEX app.ix_orders_created_on SET (fillfactor = 70)");
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GeneratePostgreSql_WithUnsupportedDatabaseOption_ThrowsInvalidOperationException()
     {

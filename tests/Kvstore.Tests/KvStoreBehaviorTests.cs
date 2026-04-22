@@ -5,8 +5,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Kvstore.Tests;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public class KvStoreBehaviorTests
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task StoreStringAsync_WhenCalledTwiceOnWriteOnceStore_PersistsFirstValueOnly()
     {
@@ -26,6 +32,9 @@ public class KvStoreBehaviorTests
         await Assert.That(read!.AsString()).IsEqualTo("first");
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task UpsertStringAsync_WithOutdatedVersion_RejectsUpdate()
     {
@@ -45,6 +54,9 @@ public class KvStoreBehaviorTests
         await Assert.That(read!.AsString()).IsEqualTo("v2");
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task UpsertStringAsync_WhenCreateUsesNonEmptyVersion_RejectsCreate()
     {
@@ -60,6 +72,9 @@ public class KvStoreBehaviorTests
         await Assert.That(result.Created).IsFalse();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task StoreStringAsync_WhenKeyIsTooLarge_ThrowsArgumentOutOfRangeException()
     {
@@ -73,6 +88,9 @@ public class KvStoreBehaviorTests
             .Throws<ArgumentOutOfRangeException>();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task CreateWriteOnceClient_WithDependencyInjection_StoresAndFetchesValue()
     {
@@ -94,6 +112,9 @@ public class KvStoreBehaviorTests
         await Assert.That(read!.AsString()).IsEqualTo("di-value");
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task StoreBlobAsync_WithStream_PersistsAndReturnsBlobStream()
     {
@@ -114,6 +135,9 @@ public class KvStoreBehaviorTests
             .IsEqualTo(Convert.ToBase64String([1, 2, 3, 4, 5]));
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task UpsertBlobAsync_WithStreamInClient_UpdatesAndReturnsBlobStream()
     {

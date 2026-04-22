@@ -5,8 +5,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Binstore.Tests;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public class BinStoreBehaviorTests
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task StoreAsync_WithLargeStream_SplitsIntoChunksAndReadsBack()
     {
@@ -28,6 +34,9 @@ public class BinStoreBehaviorTests
         await Assert.That(copied.ToArray()).IsEquivalentTo(payload);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task StoreAsync_WhenCalledTwiceOnSameKey_DoesNotOverwrite()
     {
@@ -49,6 +58,9 @@ public class BinStoreBehaviorTests
             .IsEqualTo(Convert.ToBase64String([1, 2, 3]));
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task CreateClient_WithDependencyInjection_StoresAndFetchesValue()
     {

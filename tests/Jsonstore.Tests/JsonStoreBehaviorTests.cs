@@ -7,8 +7,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Jsonstore.Tests;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public class JsonStoreBehaviorTests
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task StoreAsync_WithLargeJsonStream_SplitsIntoChunksAndReadsBack()
     {
@@ -31,6 +37,9 @@ public class JsonStoreBehaviorTests
         await Assert.That(Encoding.UTF8.GetString(copied.ToArray())).IsEqualTo(payload);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task StoreAsync_WithPrimitiveJson_ThrowsJsonException()
     {
@@ -58,6 +67,9 @@ public class JsonStoreBehaviorTests
         await Assert.That(caughtExceptions.Count).IsEqualTo(primitiveJsonValues.Length);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task StoreAsync_WhenCalledTwiceOnSameKey_DoesNotOverwrite()
     {
@@ -78,6 +90,9 @@ public class JsonStoreBehaviorTests
         await Assert.That(stored).IsEqualTo("{\"v\":1}");
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GetObjectPropertiesAsync_WithObjectValue_ReturnsPropertyValues()
     {
@@ -97,6 +112,9 @@ public class JsonStoreBehaviorTests
         await Assert.That(values).IsEquivalentTo(["1", "[2,3]", "{\"ok\":true}"]);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GetObjectPropertiesAsync_WithComplexStringProperties_ReturnsExactStringValues()
     {
@@ -136,6 +154,9 @@ public class JsonStoreBehaviorTests
         await Assert.That(values[1].GetString()).IsEqualTo(markdownText);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GetObjectPropertiesAsync_WithMalformedJsonTextAndUtf8Strings_ReturnsExactStringValues()
     {
@@ -166,6 +187,9 @@ public class JsonStoreBehaviorTests
         await Assert.That(values[1].GetString()).IsEqualTo(utf8Text);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GetArrayElementsAsync_WithArrayValue_ReturnsElements()
     {
@@ -185,6 +209,9 @@ public class JsonStoreBehaviorTests
         await Assert.That(elements).IsEquivalentTo(["{\"id\":1}", "{\"id\":2}", "3"]);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GetArrayElementsAsync_WithComplexStringElements_ReturnsExactStringValues()
     {
@@ -223,6 +250,9 @@ public class JsonStoreBehaviorTests
         await Assert.That(values[1].GetString()).IsEqualTo(markdownText);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GetArrayElementsAsync_WithMalformedJsonTextAndUtf8Strings_ReturnsExactStringValues()
     {
@@ -253,6 +283,9 @@ public class JsonStoreBehaviorTests
         await Assert.That(values[1].GetString()).IsEqualTo(utf8Text);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task CreateClient_WithDependencyInjection_StoresAndFetchesValue()
     {

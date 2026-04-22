@@ -3,8 +3,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Kvstore;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersionedKeyValueStore
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public Task<VersionedUpsertResult> UpsertStringAsync(
         string key,
         string? expectedVersionId,
@@ -12,6 +18,9 @@ public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersio
         CancellationToken cancellationToken = default) =>
         UpsertCoreAsync(key, expectedVersionId, KvEntryKind.String, Encoding.UTF8.GetBytes(value), cancellationToken);
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public Task<VersionedUpsertResult> UpsertBlobAsync(
         string key,
         string? expectedVersionId,
@@ -37,6 +46,9 @@ public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersio
         return await UpsertCoreAsync(key, expectedVersionId, KvEntryKind.Blob, memoryStream.ToArray(), cancellationToken);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public async Task<KvReadResult?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
         KeyValidation.Validate(key);

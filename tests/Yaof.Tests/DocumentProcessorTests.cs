@@ -6,6 +6,9 @@ using Yaof.Models;
 
 namespace Yaof.Tests;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public class DocumentProcessorTests
 {
     private readonly DocumentProcessor _sut = new();
@@ -41,6 +44,9 @@ public class DocumentProcessorTests
             }
         };
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ProcessDocument_WithMarkerInHeading_RemovesMarkerText()
     {
@@ -66,6 +72,9 @@ public class DocumentProcessorTests
         await Assert.That(headingText.Contains("{{repl:##intro}}")).IsFalse();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ProcessDocument_WithMarkerInHeading_InsertsParagraphAfterHeading()
     {
@@ -89,6 +98,9 @@ public class DocumentProcessorTests
         await Assert.That(found).IsTrue();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ProcessDocument_WithRelativeHeader_InsertsHeadingAtCorrectLevel()
     {
@@ -113,6 +125,9 @@ public class DocumentProcessorTests
         await Assert.That(found).IsTrue();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ProcessDocument_WithUnknownId_LeavesDocumentUnchanged()
     {
@@ -137,6 +152,9 @@ public class DocumentProcessorTests
         await Assert.That(markerStillPresent).IsTrue();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ProcessDocument_WithUnorderedList_InsertsListBulletParagraphs()
     {
@@ -160,6 +178,9 @@ public class DocumentProcessorTests
         await Assert.That(listParagraphs.Count).IsEqualTo(3);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ProcessDocument_WithOrderedList_InsertsListNumberParagraphs()
     {
@@ -183,6 +204,9 @@ public class DocumentProcessorTests
         await Assert.That(listParagraphs.Count).IsEqualTo(2);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ProcessDocument_WithTableItem_InsertsTableWithHeaderAndRows()
     {
@@ -212,6 +236,9 @@ public class DocumentProcessorTests
         await Assert.That(string.Concat(rows[2].Descendants<Text>().Select(t => t.Text))).IsEqualTo("Bob20");
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ProcessDocument_WithTableStyle_SetsTableStyleReference()
     {
@@ -238,6 +265,9 @@ public class DocumentProcessorTests
         await Assert.That(style).IsEqualTo("TableGrid");
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task ProcessDocument_WithTableCaption_InsertsCaptionParagraph()
     {

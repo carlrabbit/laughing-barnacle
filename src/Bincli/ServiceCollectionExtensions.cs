@@ -4,20 +4,32 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bincli;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static IServiceCollection AddBinStoreWithSqlServer(
         this IServiceCollection services,
         string connectionString) =>
         services.AddBinStore(
             options => options.UseSqlServer(connectionString));
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static IServiceCollection AddBinStoreWithPostgreSql(
         this IServiceCollection services,
         string connectionString) =>
         services.AddBinStore(
             options => options.UseNpgsql(connectionString));
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static IServiceCollection AddBinStore(
         this IServiceCollection services,
         Action<DbContextOptionsBuilder> configureDbContext)

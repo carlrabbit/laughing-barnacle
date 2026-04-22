@@ -3,8 +3,14 @@ using Microsoft.EntityFrameworkCore.Migrations.Operations.Builders;
 
 namespace EfCustomMigrations;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public static class MigrationBuilderExtensions
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static OperationBuilder<CreateSqlUserOperation> CreateSqlUser(
         this MigrationBuilder migrationBuilder,
         string userName,
@@ -34,6 +40,9 @@ public static class MigrationBuilderExtensions
         return new OperationBuilder<CreateSqlUserOperation>(operation);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static OperationBuilder<CreateSqlLoginOrRoleOperation> CreateSqlLoginOrRole(
         this MigrationBuilder migrationBuilder,
         string principalName,
@@ -67,6 +76,9 @@ public static class MigrationBuilderExtensions
         return new OperationBuilder<CreateSqlLoginOrRoleOperation>(operation);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static OperationBuilder<GrantSchemaOrTablePrivilegesOperation> GrantSchemaOrTablePrivileges(
         this MigrationBuilder migrationBuilder,
         string principalName,
@@ -98,6 +110,9 @@ public static class MigrationBuilderExtensions
         return new OperationBuilder<GrantSchemaOrTablePrivilegesOperation>(operation);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static OperationBuilder<CreateSchemaWithOwnerOperation> CreateSchemaWithOwner(
         this MigrationBuilder migrationBuilder,
         string schemaName,
@@ -119,6 +134,9 @@ public static class MigrationBuilderExtensions
         return new OperationBuilder<CreateSchemaWithOwnerOperation>(operation);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static OperationBuilder<SeedIdempotentSqlOperation> SeedIdempotentSql(
         this MigrationBuilder migrationBuilder,
         string seedKey,
@@ -138,6 +156,9 @@ public static class MigrationBuilderExtensions
         return new OperationBuilder<SeedIdempotentSqlOperation>(operation);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static OperationBuilder<SetDatabaseOptionOperation> SetDatabaseOption(
         this MigrationBuilder migrationBuilder,
         string optionName,
@@ -157,6 +178,9 @@ public static class MigrationBuilderExtensions
         return new OperationBuilder<SetDatabaseOptionOperation>(operation);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static OperationBuilder<SetIndexStorageParameterOperation> SetIndexStorageParameter(
         this MigrationBuilder migrationBuilder,
         string schemaName,

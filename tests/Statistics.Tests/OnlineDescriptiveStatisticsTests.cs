@@ -2,8 +2,14 @@ using Statistics;
 
 namespace Statistics.Tests;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public class OnlineDescriptiveStatisticsTests
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Update_WithRangeOfValues_ComputesBasicStatistics()
     {
@@ -25,6 +31,9 @@ public class OnlineDescriptiveStatisticsTests
         await Assert.That(sut.StandardDeviation).IsEqualTo(Math.Sqrt(833.25));
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Update_WithRangeOfValues_ApproximatesMedianAndPercentiles()
     {
@@ -43,6 +52,9 @@ public class OnlineDescriptiveStatisticsTests
         await Assert.That(Math.Abs(sut.Percentile05 - 5.95)).IsLessThanOrEqualTo(2d);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Update_WithNonFiniteValue_ThrowsArgumentOutOfRangeException()
     {
@@ -60,6 +72,9 @@ public class OnlineDescriptiveStatisticsTests
         await Assert.That(negativeInfinityUpdate).Throws<ArgumentOutOfRangeException>();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Update_WithConcurrentWriters_RemainsThreadSafeAndAccurate()
     {
@@ -92,6 +107,9 @@ public class OnlineDescriptiveStatisticsTests
         await Assert.That(sut.Percentile95).IsLessThanOrEqualTo(960d);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GetSnapshot_AfterUpdates_ReturnsConsistentStatisticsView()
     {
@@ -113,6 +131,9 @@ public class OnlineDescriptiveStatisticsTests
         await Assert.That(snapshot.Variance).IsEqualTo(833.25);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task GetSnapshot_DuringConcurrentUpdates_ProducesConsistentInvariantValues()
     {

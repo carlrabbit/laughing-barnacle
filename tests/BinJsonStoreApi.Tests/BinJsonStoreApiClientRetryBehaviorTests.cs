@@ -6,8 +6,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace BinJsonStoreApi.Tests;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public class BinJsonStoreApiClientRetryBehaviorTests
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task AddBinJsonStoreApiClient_WhenTransientFailuresOccur_RetriesFiveTimesWithDelay()
     {

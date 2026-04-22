@@ -7,12 +7,18 @@ using Polly.Extensions.Http;
 
 namespace BinJsonStoreApi.Client;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
     private const string HttpClientName = "BinJsonStoreApi.Client";
     private const int MaxRetryAttempts = 5;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(100);
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static IHttpClientBuilder AddBinJsonStoreApiClient(
         this IServiceCollection services,
         string baseUrl)
@@ -22,6 +28,9 @@ public static class ServiceCollectionExtensions
         return services.AddBinJsonStoreApiClient(new Uri(baseUrl, UriKind.Absolute));
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public static IHttpClientBuilder AddBinJsonStoreApiClient(
         this IServiceCollection services,
         Uri baseAddress)

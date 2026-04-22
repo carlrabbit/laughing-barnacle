@@ -1,13 +1,22 @@
 namespace Kvstore;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public interface IVersionedKeyValueStore
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     Task<VersionedUpsertResult> UpsertStringAsync(
         string key,
         string? expectedVersionId,
         string value,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     Task<VersionedUpsertResult> UpsertBlobAsync(
         string key,
         string? expectedVersionId,
@@ -23,6 +32,9 @@ public interface IVersionedKeyValueStore
         Stream valueStream,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     Task<KvReadResult?> GetAsync(string key, CancellationToken cancellationToken = default);
 
     /// <summary>

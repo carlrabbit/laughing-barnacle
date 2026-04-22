@@ -178,4 +178,7 @@ app.MapGet("/json/{key}/array-elements-stream", async Task<IResult> (
 
 app.Run();
 
+/// <summary>
+/// Entry point marker for integration testing.
+/// </summary>
 public partial class Program;

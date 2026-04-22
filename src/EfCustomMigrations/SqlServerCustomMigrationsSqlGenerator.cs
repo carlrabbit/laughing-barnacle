@@ -6,6 +6,9 @@ using Microsoft.EntityFrameworkCore.Update;
 
 namespace EfCustomMigrations;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public sealed class SqlServerCustomMigrationsSqlGenerator(
     MigrationsSqlGeneratorDependencies dependencies,
     ICommandBatchPreparer commandBatchPreparer)
@@ -13,6 +16,9 @@ public sealed class SqlServerCustomMigrationsSqlGenerator(
 {
     private RelationalTypeMapping? stringTypeMapping;
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     protected override void Generate(MigrationOperation operation, IModel? model, MigrationCommandListBuilder builder)
     {
         switch (operation)

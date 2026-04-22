@@ -2,14 +2,29 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Jsonstore;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public sealed class JsonStoreDbContext(DbContextOptions<JsonStoreDbContext> options) : DbContext(options)
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public const int MaxKeyBytes = 4096;
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public DbSet<JsonRecord> Jsons => Set<JsonRecord>();
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public DbSet<JsonChunkRecord> JsonChunks => Set<JsonChunkRecord>();
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var jsons = modelBuilder.Entity<JsonRecord>();

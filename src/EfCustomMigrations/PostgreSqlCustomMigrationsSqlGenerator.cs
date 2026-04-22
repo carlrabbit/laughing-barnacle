@@ -7,6 +7,9 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Migrations;
 
 namespace EfCustomMigrations;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public sealed class PostgreSqlCustomMigrationsSqlGenerator(
     MigrationsSqlGeneratorDependencies dependencies,
     INpgsqlSingletonOptions npgsqlSingletonOptions)
@@ -14,6 +17,9 @@ public sealed class PostgreSqlCustomMigrationsSqlGenerator(
 {
     private RelationalTypeMapping? stringTypeMapping;
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     protected override void Generate(MigrationOperation operation, IModel? model, MigrationCommandListBuilder builder)
     {
         switch (operation)

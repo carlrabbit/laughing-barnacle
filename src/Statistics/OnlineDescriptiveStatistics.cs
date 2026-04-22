@@ -8,6 +8,9 @@ public sealed class OnlineDescriptiveStatistics
 {
     private State state = State.Empty;
 
+    /// <summary>
+    /// Returns a consistent point-in-time snapshot of all computed statistics.
+    /// </summary>
     public StatisticsSnapshot GetSnapshot()
     {
         var snapshot = Volatile.Read(ref state);
@@ -23,16 +26,46 @@ public sealed class OnlineDescriptiveStatistics
             snapshot.Percentile95);
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public long Count => Volatile.Read(ref state).Count;
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public double Mean => Volatile.Read(ref state).Mean;
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public double Median => Volatile.Read(ref state).Median;
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public double Max => Volatile.Read(ref state).Max;
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public double Min => Volatile.Read(ref state).Min;
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public double Variance => Volatile.Read(ref state).Variance;
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public double StandardDeviation => Volatile.Read(ref state).StandardDeviation;
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public double Percentile95 => Volatile.Read(ref state).Percentile95;
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public double Percentile05 => Volatile.Read(ref state).Percentile05;
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public void Update(double value)
     {
         if (!double.IsFinite(value))
@@ -372,6 +405,9 @@ public sealed class OnlineDescriptiveStatistics
     }
 }
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public readonly record struct StatisticsSnapshot(
     long Count,
     double Mean,

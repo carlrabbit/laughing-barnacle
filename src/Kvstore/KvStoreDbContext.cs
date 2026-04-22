@@ -2,12 +2,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Kvstore;
 
+/// <summary>
+/// Documentation.
+/// </summary>
 public sealed class KvStoreDbContext(DbContextOptions<KvStoreDbContext> options) : DbContext(options)
 {
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public const int MaxKeyBytes = 10 * 1024 * 1024;
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     public DbSet<KvEntryRecord> Entries => Set<KvEntryRecord>();
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var entity = modelBuilder.Entity<KvEntryRecord>();

@@ -3,10 +3,16 @@ using Yaof.Models;
 
 namespace Yaof.Tests;
 
+/// <summary>
+/// Tests deserialization of polymorphic replacement document content items.
+/// </summary>
 public class ReplacementDocumentSerializationTests
 {
     private static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Deserialize_WithAllItemTypes_ProducesCorrectModelGraph()
     {
@@ -45,6 +51,9 @@ public class ReplacementDocumentSerializationTests
         await Assert.That(items[5]).IsTypeOf<TableItem>();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Deserialize_HeaderItem_HasCorrectProperties()
     {
@@ -66,6 +75,9 @@ public class ReplacementDocumentSerializationTests
         await Assert.That(header.Text).IsEqualTo("My heading");
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Deserialize_ImageItem_WithOptionalCaption_Works()
     {
@@ -87,6 +99,9 @@ public class ReplacementDocumentSerializationTests
         await Assert.That(img.Caption).IsNull();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Deserialize_TableItem_WithHeaderAndStyle_HasCorrectProperties()
     {
@@ -121,6 +136,9 @@ public class ReplacementDocumentSerializationTests
         await Assert.That(table.Caption).IsNull();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Deserialize_TableItem_WithCaption_HasCaption()
     {

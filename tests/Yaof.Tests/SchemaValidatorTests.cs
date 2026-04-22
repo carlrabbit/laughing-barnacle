@@ -2,10 +2,16 @@ using Yaof;
 
 namespace Yaof.Tests;
 
+/// <summary>
+/// Tests schema validation outcomes for valid and invalid YAOF replacement documents.
+/// </summary>
 public class SchemaValidatorTests
 {
     private readonly SchemaValidator _sut = new();
 
+    /// <summary>
+    /// Verifies that validation succeeds for a document that conforms to the schema.
+    /// </summary>
     [Test]
     public async Task Validate_WithValidReplacementDocument_ReturnsSuccess()
     {
@@ -30,6 +36,9 @@ public class SchemaValidatorTests
         await Assert.That(result.IsValid).IsTrue();
     }
 
+    /// <summary>
+    /// Verifies that validation succeeds when all supported YAOF content item types are present and valid.
+    /// </summary>
     [Test]
     public async Task Validate_WithAllItemTypes_ReturnsSuccess()
     {
@@ -58,6 +67,9 @@ public class SchemaValidatorTests
         await Assert.That(result.IsValid).IsTrue();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Validate_WithMissingRequiredField_ReturnsFailure()
     {
@@ -82,6 +94,9 @@ public class SchemaValidatorTests
         await Assert.That(result.Errors).IsNotEmpty();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Validate_WithInvalidJson_ReturnsFailure()
     {
@@ -95,6 +110,9 @@ public class SchemaValidatorTests
         await Assert.That(result.IsValid).IsFalse();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Validate_WithEmptyReplacements_ReturnsSuccess()
     {
@@ -108,6 +126,9 @@ public class SchemaValidatorTests
         await Assert.That(result.IsValid).IsTrue();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Validate_WithUnknownItemType_ReturnsFailure()
     {
@@ -129,6 +150,9 @@ public class SchemaValidatorTests
         await Assert.That(result.IsValid).IsFalse();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Validate_WithHeaderLevelOutOfRange_ReturnsFailure()
     {
@@ -150,6 +174,9 @@ public class SchemaValidatorTests
         await Assert.That(result.IsValid).IsFalse();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Validate_WithTableWithoutRows_ReturnsFailure()
     {
@@ -171,6 +198,9 @@ public class SchemaValidatorTests
         await Assert.That(result.IsValid).IsFalse();
     }
 
+    /// <summary>
+    /// Documentation.
+    /// </summary>
     [Test]
     public async Task Validate_WithTableWithRowsOnly_ReturnsSuccess()
     {
