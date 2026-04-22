@@ -1,12 +1,5 @@
 # GitHub Copilot Instructions
-
-## Project Overview
-
-This is a .NET 10 console application. The solution is organized into:
-
-- `src/LaughingBarnacle` – the main console application
-- `tests/LaughingBarnacle.Tests` – TUnit tests for the application
-
+ 
 ## Build, Test, and Run
 
 ```bash
