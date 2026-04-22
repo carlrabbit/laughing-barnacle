@@ -70,6 +70,7 @@ public class JsonTreeNode
 
     /// <summary>
     /// Creates a <see cref="JsonTreeNode"/> from a <see cref="JsonElement"/>.
+    /// Recursively processes child values for object properties and array elements.
     /// </summary>
     /// <param name="element">The source JSON element.</param>
     /// <param name="key">The optional object property key.</param>

@@ -1,12 +1,12 @@
 namespace LaughingBarnacle.Tests;
 
 /// <summary>
-/// Tests for JSON to markdown table conversion behavior.
+/// Contains tests for verifying <see cref="JsonToMarkdownConverter"/> functionality and edge cases.
 /// </summary>
 public class JsonToMarkdownConverterTests
 {
     /// <summary>
-    /// Verifies a single JSON object yields one markdown table.
+    /// Tests that converting a single JSON object returns exactly one table.
     /// </summary>
     [Test]
     public async Task Convert_WithSingleObject_ReturnsOneTable()
@@ -22,7 +22,7 @@ public class JsonToMarkdownConverterTests
     }
 
     /// <summary>
-    /// Verifies generated tables include the expected header row.
+    /// Tests that the generated table contains the correct header format.
     /// </summary>
     [Test]
     public async Task Convert_WithSingleObject_TableHasCorrectHeader()
@@ -38,7 +38,7 @@ public class JsonToMarkdownConverterTests
     }
 
     /// <summary>
-    /// Verifies generated tables include a markdown separator row.
+    /// Tests that the generated table includes the markdown separator row.
     /// </summary>
     [Test]
     public async Task Convert_WithSingleObject_TableHasSeparatorRow()
@@ -54,7 +54,7 @@ public class JsonToMarkdownConverterTests
     }
 
     /// <summary>
-    /// Verifies object properties are rendered as markdown rows.
+    /// Tests that object properties are rendered as markdown table rows.
     /// </summary>
     [Test]
     public async Task Convert_WithSingleObject_TableContainsPropertyRows()
@@ -71,7 +71,7 @@ public class JsonToMarkdownConverterTests
     }
 
     /// <summary>
-    /// Verifies each object in an array produces its own table.
+    /// Tests that an array with multiple objects produces multiple tables.
     /// </summary>
     [Test]
     public async Task Convert_WithMultipleObjects_ReturnsMultipleTables()
@@ -87,7 +87,7 @@ public class JsonToMarkdownConverterTests
     }
 
     /// <summary>
-    /// Verifies an empty array produces no output tables.
+    /// Tests that converting an empty array returns no tables.
     /// </summary>
     [Test]
     public async Task Convert_WithEmptyArray_ReturnsNoTables()
@@ -103,7 +103,7 @@ public class JsonToMarkdownConverterTests
     }
 
     /// <summary>
-    /// Verifies a non-array JSON payload is rejected.
+    /// Tests that converting non-array JSON throws <see cref="ArgumentException"/>.
     /// </summary>
     [Test]
     public async Task Convert_WithNonArrayJson_ThrowsArgumentException()
@@ -117,7 +117,7 @@ public class JsonToMarkdownConverterTests
     }
 
     /// <summary>
-    /// Verifies empty string values render as empty markdown cells.
+    /// Tests that empty string values are rendered as empty markdown cells.
     /// </summary>
     [Test]
     public async Task Convert_WithEmptyStringValue_RendersEmptyCell()

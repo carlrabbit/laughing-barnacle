@@ -1,12 +1,12 @@
 namespace LaughingBarnacle.Tests;
 
 /// <summary>
-/// Tests for application program entry point metadata.
+/// Contains tests for verifying Program metadata and assembly resolution.
 /// </summary>
 public class ProgramTests
 {
     /// <summary>
-    /// Verifies the program assembly can be resolved.
+    /// Tests that the program assembly has a non-null name.
     /// </summary>
     [Test]
     public async Task Assembly_WhenAccessed_HasName()
