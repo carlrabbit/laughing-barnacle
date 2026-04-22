@@ -9,6 +9,7 @@
     <Project Path="src/Binstore/Binstore.csproj" />
     <Project Path="src/EfCustomMigrations/EfCustomMigrations.csproj" />
     <Project Path="src/FormatProjectSpecificOnSave/FormatProjectSpecificOnSave.csproj" />
+    <Project Path="src/FormatProjectSpecificOnSave.VSExtension/FormatProjectSpecificOnSave.VSExtension.csproj" />
     <Project Path="src/Jsoncli/Jsoncli.csproj" />
     <Project Path="src/Jsonstore/Jsonstore.csproj" />
     <Project Path="src/Kvcli/Kvcli.csproj" />
