@@ -26,6 +26,6 @@ app.MapRazorComponents<App>()
 app.Run();
 
 /// <summary>
-/// Entry point marker type used by integration and unit tests to locate the application assembly.
+/// Entry point marker type used by tests to locate the application assembly.
 /// </summary>
 public partial class Program { }
