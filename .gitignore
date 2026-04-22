@@ -54,3 +54,6 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Visual Studio out-of-process extension artifacts
+.vsextension/

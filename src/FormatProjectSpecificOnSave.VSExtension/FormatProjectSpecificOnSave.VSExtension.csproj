@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Visual Studio extensions must target net8.0-windows8.0 for the VisualStudio.Extensibility SDK.
+    On non-Windows platforms (Linux/macOS CI) the project compiles as an empty net8.0 library so
+    the solution-level build does not fail. All source files are excluded on non-Windows to avoid
+    referencing Windows-only VS Extensibility types.
+  -->
+
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <TargetFramework>net8.0-windows8.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <!-- Compile as an empty stub on non-Windows so the solution build succeeds. -->
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!--
+    On Windows: include the VisualStudio.Extensibility SDK packages.
+    Microsoft.VisualStudio.Extensibility.Sdk brings in all compile-time references for the new
+    out-of-process model. Microsoft.VisualStudio.Extensibility.Build generates the .vsextension
+    deployment folder.
+  -->
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
+    <ProjectReference Include="..\FormatProjectSpecificOnSave\FormatProjectSpecificOnSave.csproj" />
+  </ItemGroup>
+
+  <!--
+    On non-Windows: exclude all source files so the empty stub compiles without referencing
+    Windows-only VisualStudio.Extensibility types.
+  -->
+  <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <Compile Remove="**/*.cs" />
+  </ItemGroup>
+
+</Project>
