@@ -25,4 +25,7 @@ app.MapRazorComponents<App>()
 
 app.Run();
 
+/// <summary>
+/// Application entry-point marker used by integration tests to locate the host assembly.
+/// </summary>
 public partial class Program { }
