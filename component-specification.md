@@ -35,7 +35,7 @@ When adding a new component, append a section using this structure:
 - **Public API:** `IWriteOnceJsonStore`, `WriteOnceJsonStore`, `JsonStoreResult`, `JsonRootType`.
 - **Storage and data model:** `JsonRecord` and `JsonChunkRecord` mapped by `JsonStoreDbContext`.
 
-### EFcore migrations
+### EF Core migrations
 
 - **Purpose:** provider-specific EF Core custom migration operations and SQL generation.
 - **Projects:** `src/EfCustomMigrations`, `tests/EfCustomMigrations.Tests`.
