@@ -28,23 +28,21 @@ using Microsoft.VisualStudio.Extensibility.Editor;
 [VisualStudioContribution]
 internal class DocumentSaveListener : ExtensionPart, ITextViewOpenClosedListener
 {
-#pragma warning disable CA2213 // Disposable fields should be disposed — service is extension-scoped.
-    private readonly DocumentFormatService formatService;
-#pragma warning restore CA2213
+    private readonly FormatProjectSpecificOnSaveExtension formatter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DocumentSaveListener"/> class.
     /// </summary>
     /// <param name="extension">Owning extension instance.</param>
     /// <param name="extensibility">Extensibility object provided by the host.</param>
-    /// <param name="formatService">Document formatting service.</param>
+    /// <param name="formatter">The core format service from the shared library.</param>
     public DocumentSaveListener(
         FormatOnSaveExtension extension,
         VisualStudioExtensibility extensibility,
-        DocumentFormatService formatService)
+        FormatProjectSpecificOnSaveExtension formatter)
         : base(extension, extensibility)
     {
-        this.formatService = Requires.NotNull(formatService, nameof(formatService));
+        this.formatter = Requires.NotNull(formatter, nameof(formatter));
     }
 
     /// <inheritdoc/>

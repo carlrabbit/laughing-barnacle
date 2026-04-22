@@ -9,7 +9,7 @@ using Microsoft.VisualStudio.Extensibility.Commands;
 using Microsoft.VisualStudio.Extensibility.Editor;
 
 /// <summary>
-/// Command that formats the current document with <c>dotnet format</c> and then saves it.
+/// Command that formats the current document with <c>dotnet format</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -20,8 +20,9 @@ using Microsoft.VisualStudio.Extensibility.Editor;
 ///   <item>Writes that content to the file on disk (overwriting it).</item>
 ///   <item>Invokes <c>dotnet format --include &lt;file&gt;</c> to apply project-specific formatting rules.</item>
 ///   <item>Reads the formatted content back from disk.</item>
-///   <item>Replaces the entire document buffer with the formatted content so the editor shows
-///         the final result and VS saves the formatted version on the next Ctrl+S.</item>
+///   <item>Replaces the entire document buffer with the formatted content so the editor reflects
+///         the final result. The document is then marked dirty and the user must still press
+///         <c>Ctrl+S</c> to persist the formatted version to disk.</item>
 /// </list>
 /// </para>
 /// <para>
@@ -34,20 +35,17 @@ using Microsoft.VisualStudio.Extensibility.Editor;
 internal class FormatOnSaveCommand : Command
 {
     private readonly TraceSource logger;
-
-#pragma warning disable CA2213 // Disposable fields should be disposed — service is extension-scoped.
-    private readonly DocumentFormatService formatService;
-#pragma warning restore CA2213
+    private readonly FormatProjectSpecificOnSaveExtension formatter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FormatOnSaveCommand"/> class.
     /// </summary>
     /// <param name="traceSource">Trace source provided by the extensibility host.</param>
-    /// <param name="formatService">Document formatting service.</param>
-    public FormatOnSaveCommand(TraceSource traceSource, DocumentFormatService formatService)
+    /// <param name="formatter">The core format service from the shared library.</param>
+    public FormatOnSaveCommand(TraceSource traceSource, FormatProjectSpecificOnSaveExtension formatter)
     {
         this.logger = Requires.NotNull(traceSource, nameof(traceSource));
-        this.formatService = Requires.NotNull(formatService, nameof(formatService));
+        this.formatter = Requires.NotNull(formatter, nameof(formatter));
     }
 
     /// <inheritdoc/>
@@ -90,11 +88,19 @@ internal class FormatOnSaveCommand : Command
         var currentContent = textView.Document.Text.CopyToString();
         await File.WriteAllTextAsync(filePath, currentContent, cancellationToken);
 
-        // 2. Run dotnet format on the saved file.
-        var formatted = await this.formatService.FormatDocumentAsync(filePath, cancellationToken);
-        if (!formatted)
+        // 2. Run dotnet format on the saved file via the shared core library.
+        //    BeforeSaveAsync silently skips if no .csproj is found; any other failure
+        //    (e.g. dotnet format not installed) surfaces as an exception and is logged below.
+        try
         {
-            this.logger.TraceInformation($"FormatOnSaveCommand: no .csproj found for '{filePath}'. Skipping format.");
+            await this.formatter.BeforeSaveAsync(filePath, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            this.logger.TraceEvent(
+                TraceEventType.Warning,
+                0,
+                $"FormatOnSaveCommand: dotnet format failed for '{filePath}': {ex.Message}");
             return;
         }
 
@@ -102,7 +108,7 @@ internal class FormatOnSaveCommand : Command
         var formattedContent = await File.ReadAllTextAsync(filePath, cancellationToken);
 
         // 4. Replace the entire document buffer with the formatted content so the editor
-        //    reflects the changes. VS will mark the document dirty; the user saves with Ctrl+S.
+        //    reflects the changes. The document is marked dirty; the user saves with Ctrl+S.
         await this.Extensibility.Editor().EditAsync(
             batch =>
             {

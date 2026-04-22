@@ -29,8 +29,10 @@ public class FormatOnSaveExtension : Extension
     {
         base.InitializeServices(serviceCollection);
 
-        // DocumentFormatService is scoped because it holds VisualStudioExtensibility,
-        // which must be scoped per the VisualStudio.Extensibility SDK requirements.
-        serviceCollection.AddScoped<DocumentFormatService>();
+        // IProcessRunner is stateless; register as singleton.
+        serviceCollection.AddSingleton<IProcessRunner, ProcessRunner>();
+
+        // FormatProjectSpecificOnSaveExtension holds no state; register as singleton.
+        serviceCollection.AddSingleton<FormatProjectSpecificOnSaveExtension>();
     }
 }
