@@ -1,7 +1,4 @@
 <Solution>
-  <Folder Name="/sfas/">
-    <Project Path="sfas/JsonToMarkdown.csproj" />
-  </Folder>
   <Folder Name="/src/">
     <Project Path="src/BinJsonStoreApi.Client/BinJsonStoreApi.Client.csproj" />
     <Project Path="src/BinJsonStoreApi/BinJsonStoreApi.csproj" />
