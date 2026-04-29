@@ -38,6 +38,9 @@ public sealed class SqlServerCustomMigrationsSqlGenerator(
             case SetIndexStorageParameterOperation setIndexStorageParameterOperation:
                 GenerateSetIndexStorageParameter(setIndexStorageParameterOperation, builder);
                 break;
+            case EnableSnapshotIsolationOperation enableSnapshotIsolationOperation:
+                GenerateEnableSnapshotIsolation(enableSnapshotIsolationOperation, builder);
+                break;
             default:
                 base.Generate(operation, model, builder);
                 break;
@@ -218,6 +221,23 @@ public sealed class SqlServerCustomMigrationsSqlGenerator(
         builder.AppendLine(
             $"ALTER INDEX {delimitedIndexName} ON {delimitedTableName} " +
             $"REBUILD WITH ({operation.ParameterName} = {operation.ParameterValue});");
+
+        builder.EndCommand();
+    }
+
+    private static void GenerateEnableSnapshotIsolation(
+        EnableSnapshotIsolationOperation operation,
+        MigrationCommandListBuilder builder)
+    {
+        if (operation.AllowSnapshotIsolation)
+        {
+            builder.AppendLine("ALTER DATABASE CURRENT SET ALLOW_SNAPSHOT_ISOLATION ON;");
+        }
+
+        if (operation.ReadCommittedSnapshot)
+        {
+            builder.AppendLine("ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON;");
+        }
 
         builder.EndCommand();
     }

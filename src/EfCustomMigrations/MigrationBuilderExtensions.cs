@@ -184,4 +184,28 @@ public static class MigrationBuilderExtensions
         migrationBuilder.Operations.Add(operation);
         return new OperationBuilder<SetIndexStorageParameterOperation>(operation);
     }
+
+    public static OperationBuilder<EnableSnapshotIsolationOperation> EnableSnapshotIsolation(
+        this MigrationBuilder migrationBuilder,
+        bool allowSnapshotIsolation = true,
+        bool readCommittedSnapshot = true)
+    {
+        ArgumentNullException.ThrowIfNull(migrationBuilder);
+
+        if (!allowSnapshotIsolation && !readCommittedSnapshot)
+        {
+            throw new ArgumentException(
+                "At least one of allowSnapshotIsolation or readCommittedSnapshot must be true.",
+                $"{nameof(allowSnapshotIsolation)}|{nameof(readCommittedSnapshot)}");
+        }
+
+        var operation = new EnableSnapshotIsolationOperation
+        {
+            AllowSnapshotIsolation = allowSnapshotIsolation,
+            ReadCommittedSnapshot = readCommittedSnapshot
+        };
+
+        migrationBuilder.Operations.Add(operation);
+        return new OperationBuilder<EnableSnapshotIsolationOperation>(operation);
+    }
 }

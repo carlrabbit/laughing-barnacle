@@ -65,3 +65,10 @@ public sealed class SetIndexStorageParameterOperation : MigrationOperation
 
     public required string ParameterValue { get; init; }
 }
+
+public sealed class EnableSnapshotIsolationOperation : MigrationOperation
+{
+    public bool AllowSnapshotIsolation { get; init; } = true;
+
+    public bool ReadCommittedSnapshot { get; init; } = true;
+}

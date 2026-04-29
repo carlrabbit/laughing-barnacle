@@ -239,6 +239,92 @@ public class CreateSqlUserOperationTests
         await Assert.That(() => GenerateSql(generator, [operation])).Throws<InvalidOperationException>();
     }
 
+    [Test]
+    public async Task GenerateSqlServer_EnableSnapshotIsolation_GeneratesBothAlterStatements()
+    {
+        // Arrange
+        using var dbContext = CreateSqlServerDbContext();
+        var generator = dbContext.GetService<IMigrationsSqlGenerator>();
+        var operation = new EnableSnapshotIsolationOperation();
+
+        // Act
+        var sql = GenerateSql(generator, [operation]);
+
+        // Assert
+        await Assert.That(sql).Contains("ALTER DATABASE CURRENT SET ALLOW_SNAPSHOT_ISOLATION ON;");
+        await Assert.That(sql).Contains("ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON;");
+    }
+
+    [Test]
+    public async Task GenerateSqlServer_EnableSnapshotIsolation_AllowSnapshotIsolationOnly_OmitsReadCommittedSnapshot()
+    {
+        // Arrange
+        using var dbContext = CreateSqlServerDbContext();
+        var generator = dbContext.GetService<IMigrationsSqlGenerator>();
+        var operation = new EnableSnapshotIsolationOperation { ReadCommittedSnapshot = false };
+
+        // Act
+        var sql = GenerateSql(generator, [operation]);
+
+        // Assert
+        await Assert.That(sql).Contains("ALTER DATABASE CURRENT SET ALLOW_SNAPSHOT_ISOLATION ON;");
+        await Assert.That(sql).DoesNotContain("READ_COMMITTED_SNAPSHOT");
+    }
+
+    [Test]
+    public async Task GenerateSqlServer_EnableSnapshotIsolation_ReadCommittedSnapshotOnly_OmitsAllowSnapshotIsolation()
+    {
+        // Arrange
+        using var dbContext = CreateSqlServerDbContext();
+        var generator = dbContext.GetService<IMigrationsSqlGenerator>();
+        var operation = new EnableSnapshotIsolationOperation { AllowSnapshotIsolation = false };
+
+        // Act
+        var sql = GenerateSql(generator, [operation]);
+
+        // Assert
+        await Assert.That(sql).DoesNotContain("ALLOW_SNAPSHOT_ISOLATION");
+        await Assert.That(sql).Contains("ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON;");
+    }
+
+    [Test]
+    public async Task GeneratePostgreSql_EnableSnapshotIsolation_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        using var dbContext = CreatePostgreSqlDbContext();
+        var generator = dbContext.GetService<IMigrationsSqlGenerator>();
+        var operation = new EnableSnapshotIsolationOperation();
+
+        // Act / Assert
+        await Assert.That(() => GenerateSql(generator, [operation])).Throws<InvalidOperationException>();
+    }
+
+    [Test]
+    public async Task EnableSnapshotIsolation_MigrationBuilderExtension_AddsOperationWithDefaults()
+    {
+        // Arrange
+        var migrationBuilder = new MigrationBuilder("Microsoft.EntityFrameworkCore.SqlServer");
+
+        // Act
+        migrationBuilder.EnableSnapshotIsolation();
+
+        // Assert
+        var operation = migrationBuilder.Operations.OfType<EnableSnapshotIsolationOperation>().Single();
+        await Assert.That(operation.AllowSnapshotIsolation).IsTrue();
+        await Assert.That(operation.ReadCommittedSnapshot).IsTrue();
+    }
+
+    [Test]
+    public async Task EnableSnapshotIsolation_WhenBothFalse_ThrowsArgumentException()
+    {
+        // Arrange
+        var migrationBuilder = new MigrationBuilder("Microsoft.EntityFrameworkCore.SqlServer");
+
+        // Act / Assert
+        await Assert.That(() => migrationBuilder.EnableSnapshotIsolation(allowSnapshotIsolation: false, readCommittedSnapshot: false))
+            .Throws<ArgumentException>();
+    }
+
     private static TestSqlServerDbContext CreateSqlServerDbContext()
     {
         var options = new DbContextOptionsBuilder<TestSqlServerDbContext>()
