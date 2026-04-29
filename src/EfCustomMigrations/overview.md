@@ -31,6 +31,7 @@ options.UseNpgsql(connectionString)
 - `SeedIdempotentSql` - Executes custom SQL only once per seed key using migration seed history tracking.
 - `SetDatabaseOption` - Applies database-level options such as collation/compatibility (SQL Server) and runtime settings.
 - `SetIndexStorageParameter` - Applies provider-specific index tuning/storage parameters.
+- `EnableSnapshotIsolation` - Enables `ALLOW_SNAPSHOT_ISOLATION` and/or `READ_COMMITTED_SNAPSHOT` on the current database (SQL Server only).
 
 ## `CreateSqlUser` usage
 
@@ -155,6 +156,31 @@ Common PostgreSQL parameters:
 - `fillfactor` to reserve free space per index page and reduce split churn.
 - `deduplicate_items` (B-tree) to reduce duplicate-value footprint.
 - `fastupdate` (GIN) to optimize write behavior by buffering pending entries.
+
+## Enabling snapshot isolation (SQL Server only)
+
+```csharp
+migrationBuilder.EnableSnapshotIsolation();
+```
+
+This emits:
+
+```sql
+ALTER DATABASE CURRENT SET ALLOW_SNAPSHOT_ISOLATION ON;
+ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON;
+```
+
+Both settings are enabled by default. You can control each independently:
+
+```csharp
+// Enable only ALLOW_SNAPSHOT_ISOLATION
+migrationBuilder.EnableSnapshotIsolation(readCommittedSnapshot: false);
+
+// Enable only READ_COMMITTED_SNAPSHOT
+migrationBuilder.EnableSnapshotIsolation(allowSnapshotIsolation: false);
+```
+
+This operation is SQL Server-specific. Using it with PostgreSQL throws an `InvalidOperationException`.
 
 ## Warnings and best practices
 

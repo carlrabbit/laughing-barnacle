@@ -39,6 +39,9 @@ public sealed class PostgreSqlCustomMigrationsSqlGenerator(
             case SetIndexStorageParameterOperation setIndexStorageParameterOperation:
                 GenerateSetIndexStorageParameter(setIndexStorageParameterOperation, builder);
                 break;
+            case EnableSnapshotIsolationOperation:
+                throw new InvalidOperationException(
+                    "Snapshot isolation settings (ALLOW_SNAPSHOT_ISOLATION, READ_COMMITTED_SNAPSHOT) are SQL Server-specific and are not supported in PostgreSQL.");
             default:
                 base.Generate(operation, model, builder);
                 break;
