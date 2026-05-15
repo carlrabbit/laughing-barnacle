@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
@@ -377,18 +376,11 @@ public sealed class JsonSchemaBuilder
         }
 
         JsonArray enumValues = [];
-        HashSet<string> serializedValues = new(StringComparer.Ordinal);
         bool usesStrings = true;
         bool usesIntegers = true;
 
-        foreach (object enumValue in Enum.GetValues(targetType))
+        foreach (string serializedValue in GetDistinctSerializedEnumValues(targetType, serializerOptions))
         {
-            string serializedValue = JsonSerializer.Serialize(enumValue, targetType, serializerOptions);
-            if (!serializedValues.Add(serializedValue))
-            {
-                continue;
-            }
-
             using JsonDocument jsonDocument = JsonDocument.Parse(serializedValue);
             JsonElement element = jsonDocument.RootElement;
 
@@ -441,22 +433,38 @@ public sealed class JsonSchemaBuilder
 
         JsonArray enumValues = [];
         HashSet<string> seenValues = new(StringComparer.Ordinal);
-        Type dictionaryType = typeof(Dictionary<,>).MakeGenericType(targetKeyType, typeof(int));
-        IDictionary dictionary = (IDictionary)Activator.CreateInstance(dictionaryType)!;
 
-        foreach (object enumValue in Enum.GetValues(targetKeyType))
+        if (serializerOptions.DictionaryKeyPolicy is not null)
         {
-            dictionary[enumValue] = 0;
+            foreach (object enumValue in Enum.GetValues(targetKeyType))
+            {
+                string keyName = serializerOptions.DictionaryKeyPolicy.ConvertName(
+                    Enum.GetName(targetKeyType, enumValue) ?? enumValue.ToString()!);
+
+                if (seenValues.Add(keyName))
+                {
+                    enumValues.Add(keyName);
+                }
+            }
+
+            return new JsonObject { ["enum"] = enumValues };
         }
 
-        string serializedDictionary = JsonSerializer.Serialize(dictionary, dictionaryType, serializerOptions);
-        using JsonDocument jsonDocument = JsonDocument.Parse(serializedDictionary);
-
-        foreach (JsonProperty property in jsonDocument.RootElement.EnumerateObject())
+        foreach (string serializedValue in GetDistinctSerializedEnumValues(targetKeyType, serializerOptions))
         {
-            if (seenValues.Add(property.Name))
+            using JsonDocument jsonDocument = JsonDocument.Parse(serializedValue);
+            JsonElement element = jsonDocument.RootElement;
+            string? keyName = element.ValueKind switch
             {
-                enumValues.Add(property.Name);
+                JsonValueKind.String => serializerOptions.DictionaryKeyPolicy?.ConvertName(element.GetString()!)
+                    ?? element.GetString()!,
+                JsonValueKind.Number => element.GetRawText(),
+                _ => null
+            };
+
+            if (keyName is not null && seenValues.Add(keyName))
+            {
+                enumValues.Add(keyName);
             }
         }
 
@@ -468,13 +476,13 @@ public sealed class JsonSchemaBuilder
         HashSet<Type> path,
         JsonSerializerOptions serializerOptions)
     {
-        JsonDerivedTypeAttribute[] derivedTypes = type.GetCustomAttributes<JsonDerivedTypeAttribute>(inherit: false).ToArray();
+        JsonDerivedTypeAttribute[] derivedTypes = type.GetCustomAttributes<JsonDerivedTypeAttribute>(inherit: true).ToArray();
         if (derivedTypes.Length == 0)
         {
             return null;
         }
 
-        JsonPolymorphicAttribute? polymorphicAttribute = type.GetCustomAttribute<JsonPolymorphicAttribute>(inherit: false);
+        JsonPolymorphicAttribute? polymorphicAttribute = type.GetCustomAttribute<JsonPolymorphicAttribute>(inherit: true);
         string discriminatorPropertyName = string.IsNullOrWhiteSpace(polymorphicAttribute?.TypeDiscriminatorPropertyName)
             ? "$type"
             : polymorphicAttribute.TypeDiscriminatorPropertyName;
@@ -541,6 +549,20 @@ public sealed class JsonSchemaBuilder
         return property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
             ?? serializerOptions.PropertyNamingPolicy?.ConvertName(property.Name)
             ?? property.Name;
+    }
+
+    private static IEnumerable<string> GetDistinctSerializedEnumValues(Type enumType, JsonSerializerOptions serializerOptions)
+    {
+        HashSet<string> serializedValues = new(StringComparer.Ordinal);
+
+        foreach (object enumValue in Enum.GetValues(enumType))
+        {
+            string serializedValue = JsonSerializer.Serialize(enumValue, enumType, serializerOptions);
+            if (serializedValues.Add(serializedValue))
+            {
+                yield return serializedValue;
+            }
+        }
     }
 
     private static string CreateTypeId(string idPrefix, Type type, string version)
