@@ -147,9 +147,13 @@ public class JsonSchemaBuilderTests
         JsonObject dogSchema = variants
             .Select(static variant => (JsonObject)variant!)
             .Single(static variant => variant["properties"]!["kind"]!["const"]!.GetValue<string>() == "dog");
+        JsonObject catProperties = (JsonObject)catSchema["properties"]!;
+        JsonObject dogProperties = (JsonObject)dogSchema["properties"]!;
 
-        await Assert.That(catSchema["properties"]!["lives"]!["type"]!.GetValue<string>()).IsEqualTo("integer");
-        await Assert.That(dogSchema["properties"]!["good_dog"]!["type"]!.GetValue<string>()).IsEqualTo("boolean");
+        await Assert.That(catProperties["lives"]!["type"]!.GetValue<string>()).IsEqualTo("integer");
+        await Assert.That(dogProperties["good_dog"]!["type"]!.GetValue<string>()).IsEqualTo("boolean");
+        await Assert.That(catProperties.ContainsKey("ignored_kind")).IsFalse();
+        await Assert.That(dogProperties.ContainsKey("ignored_kind")).IsFalse();
         await Assert.That(catSchema["required"]!.AsArray().Select(static value => value!.GetValue<string>()).ToArray())
             .Contains("kind");
         await Assert.That(dogSchema["required"]!.AsArray().Select(static value => value!.GetValue<string>()).ToArray())

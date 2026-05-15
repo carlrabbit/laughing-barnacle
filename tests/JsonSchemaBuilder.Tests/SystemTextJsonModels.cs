@@ -32,7 +32,7 @@ public abstract record Animal;
 public record CatAnimal : Animal
 {
     [JsonIgnore]
-    public string Kind => "cat";
+    public string IgnoredKind => "cat";
 
     public int Lives { get; init; }
 }
@@ -40,7 +40,7 @@ public record CatAnimal : Animal
 public record DogAnimal : Animal
 {
     [JsonIgnore]
-    public string Kind => "dog";
+    public string IgnoredKind => "dog";
 
     public bool GoodDog { get; init; }
 }

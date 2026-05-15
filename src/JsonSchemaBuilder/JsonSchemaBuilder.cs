@@ -333,21 +333,31 @@ public sealed class JsonSchemaBuilder
     {
         Type targetType = Nullable.GetUnderlyingType(type) ?? type;
 
-        if (targetType.IsGenericType
-            && (targetType.GetGenericTypeDefinition() == typeof(Dictionary<,>)
-                || targetType.GetGenericTypeDefinition() == typeof(IDictionary<,>)
-                || targetType.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)))
+        if (targetType.IsGenericType)
         {
-            Type[] typeArguments = targetType.GetGenericArguments();
-            return new DictionaryTypes(typeArguments[0], typeArguments[1]);
+            Type genericTypeDefinition = targetType.GetGenericTypeDefinition();
+            if (genericTypeDefinition == typeof(Dictionary<,>)
+                || genericTypeDefinition == typeof(IDictionary<,>)
+                || genericTypeDefinition == typeof(IReadOnlyDictionary<,>))
+            {
+                Type[] typeArguments = targetType.GetGenericArguments();
+                return new DictionaryTypes(typeArguments[0], typeArguments[1]);
+            }
         }
 
         Type? dictionaryInterface = targetType
             .GetInterfaces()
             .FirstOrDefault(static interfaceType =>
-                interfaceType.IsGenericType
-                && (interfaceType.GetGenericTypeDefinition() == typeof(IDictionary<,>)
-                    || interfaceType.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)));
+            {
+                if (!interfaceType.IsGenericType)
+                {
+                    return false;
+                }
+
+                Type genericTypeDefinition = interfaceType.GetGenericTypeDefinition();
+                return genericTypeDefinition == typeof(IDictionary<,>)
+                    || genericTypeDefinition == typeof(IReadOnlyDictionary<,>);
+            });
 
         if (dictionaryInterface is null)
         {
