@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace JsonSchemaBuilder.Tests;
 
@@ -84,6 +85,79 @@ public class JsonSchemaBuilderTests
 
         // Assert
         await Assert.That(secondSchema["$id"]!.GetValue<string>()).EndsWith("/v2");
+    }
+
+    [Test]
+    public async Task BuildSchema_WithSystemTextJsonNamingPolicies_UsesSerializedNames()
+    {
+        // Arrange
+        JsonSerializerOptions serializerOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            DictionaryKeyPolicy = JsonNamingPolicy.KebabCaseLower
+        };
+        serializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
+
+        // Act
+        JsonObject schema = _schemaBuilder.BuildSchema<SystemTextJsonModels.AnnotatedEnvelope>(
+            "https://schemas.example.com",
+            serializerOptions: serializerOptions);
+
+        // Assert
+        JsonObject properties = (JsonObject)schema["properties"]!;
+        await Assert.That(properties.ContainsKey("identifier")).IsTrue();
+        await Assert.That(properties.ContainsKey("status")).IsTrue();
+        await Assert.That(properties.ContainsKey("channel_counts")).IsTrue();
+
+        JsonObject statusSchema = (JsonObject)properties["status"]!;
+        JsonArray statusValues = (JsonArray)statusSchema["enum"]!;
+        await Assert.That(statusSchema["type"]!.GetValue<string>()).IsEqualTo("string");
+        await Assert.That(statusValues.Select(static value => value!.GetValue<string>()).ToArray())
+            .IsEquivalentTo(["pending_review", "sent_to_customer"]);
+
+        JsonObject channelCountsSchema = (JsonObject)properties["channel_counts"]!;
+        JsonObject propertyNamesSchema = (JsonObject)channelCountsSchema["propertyNames"]!;
+        JsonArray channelNames = (JsonArray)propertyNamesSchema["enum"]!;
+        await Assert.That(channelNames.Select(static value => value!.GetValue<string>()).ToArray())
+            .IsEquivalentTo(["email-channel", "sms-channel"]);
+    }
+
+    [Test]
+    public async Task BuildSchema_WithJsonPolymorphicAnnotations_UsesDerivedSchemasAndDiscriminator()
+    {
+        // Arrange
+        const string idPrefix = "https://schemas.example.com";
+        JsonSerializerOptions serializerOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        };
+
+        // Act
+        JsonObject schema = _schemaBuilder.BuildSchema<SystemTextJsonModels.Animal>(
+            idPrefix,
+            serializerOptions: serializerOptions);
+
+        // Assert
+        JsonArray variants = (JsonArray)schema["oneOf"]!;
+        await Assert.That(variants.Count).IsEqualTo(2);
+
+        JsonObject catSchema = variants
+            .Select(static variant => (JsonObject)variant!)
+            .Single(static variant => variant["properties"]!["kind"]!["const"]!.GetValue<string>() == "cat");
+        JsonObject dogSchema = variants
+            .Select(static variant => (JsonObject)variant!)
+            .Single(static variant => variant["properties"]!["kind"]!["const"]!.GetValue<string>() == "dog");
+        JsonObject catProperties = (JsonObject)catSchema["properties"]!;
+        JsonObject dogProperties = (JsonObject)dogSchema["properties"]!;
+
+        await Assert.That(catProperties["lives"]!["type"]!.GetValue<string>()).IsEqualTo("integer");
+        await Assert.That(dogProperties["good_dog"]!["type"]!.GetValue<string>()).IsEqualTo("boolean");
+        await Assert.That(catProperties.ContainsKey("ignored_kind")).IsFalse();
+        await Assert.That(dogProperties.ContainsKey("ignored_kind")).IsFalse();
+        await Assert.That(catSchema["required"]!.AsArray().Select(static value => value!.GetValue<string>()).ToArray())
+            .Contains("kind");
+        await Assert.That(dogSchema["required"]!.AsArray().Select(static value => value!.GetValue<string>()).ToArray())
+            .Contains("kind");
     }
 
     private static Dictionary<string, string>? ParseSubSchemaVersions(string comment)
