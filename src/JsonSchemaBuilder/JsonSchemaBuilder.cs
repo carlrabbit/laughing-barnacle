@@ -1,7 +1,9 @@
 using System.Collections;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace JsonSchemaBuilder;
 
@@ -16,14 +18,18 @@ public sealed class JsonSchemaBuilder
     /// <typeparam name="T">The type to convert to schema.</typeparam>
     /// <param name="idPrefix">The base prefix used to compose schema IDs.</param>
     /// <param name="previousSchema">An optional previous root schema used for root version comparisons.</param>
+    /// <param name="serializerOptions">Optional serializer options used to honor System.Text.Json annotations and naming policies.</param>
     /// <returns>The generated JSON schema document.</returns>
     /// <remarks>
     /// When <typeparamref name="T" /> declares a non-static string <c>Version</c> property, the builder attempts to
     /// instantiate the type using its parameterless constructor to read the value.
     /// </remarks>
-    public JsonObject BuildSchema<T>(string idPrefix, JsonObject? previousSchema = null) where T : notnull
+    public JsonObject BuildSchema<T>(
+        string idPrefix,
+        JsonObject? previousSchema = null,
+        JsonSerializerOptions? serializerOptions = null) where T : notnull
     {
-        return BuildSchema([typeof(T)], idPrefix, previousSchema);
+        return BuildSchema([typeof(T)], idPrefix, previousSchema, serializerOptions);
     }
 
     /// <summary>
@@ -32,12 +38,17 @@ public sealed class JsonSchemaBuilder
     /// <param name="types">The types to convert to schema definitions.</param>
     /// <param name="idPrefix">The base prefix used to compose schema IDs.</param>
     /// <param name="previousSchema">An optional previous root schema used for root version comparisons.</param>
+    /// <param name="serializerOptions">Optional serializer options used to honor System.Text.Json annotations and naming policies.</param>
     /// <returns>The generated JSON schema document.</returns>
     /// <remarks>
     /// For types that declare a non-static string <c>Version</c> property, the builder attempts to instantiate the
     /// type using its parameterless constructor to read the value.
     /// </remarks>
-    public JsonObject BuildSchema(IEnumerable<Type> types, string idPrefix, JsonObject? previousSchema = null)
+    public JsonObject BuildSchema(
+        IEnumerable<Type> types,
+        string idPrefix,
+        JsonObject? previousSchema = null,
+        JsonSerializerOptions? serializerOptions = null)
     {
         ArgumentNullException.ThrowIfNull(types);
         ArgumentException.ThrowIfNullOrWhiteSpace(idPrefix);
@@ -54,22 +65,28 @@ public sealed class JsonSchemaBuilder
 
         ValidateSchemaTypes(schemaTypes);
 
+        JsonSerializerOptions effectiveSerializerOptions = serializerOptions ?? new JsonSerializerOptions();
+
         return schemaTypes.Length == 1
-            ? BuildSingleSchema(schemaTypes[0], idPrefix)
-            : BuildCompositeSchema(schemaTypes, idPrefix, previousSchema);
+            ? BuildSingleSchema(schemaTypes[0], idPrefix, effectiveSerializerOptions)
+            : BuildCompositeSchema(schemaTypes, idPrefix, previousSchema, effectiveSerializerOptions);
     }
 
-    private static JsonObject BuildSingleSchema(Type type, string idPrefix)
+    private static JsonObject BuildSingleSchema(Type type, string idPrefix, JsonSerializerOptions serializerOptions)
     {
         string schemaVersion = ResolveSchemaVersion(type);
-        JsonObject schema = BuildTypeSchema(type, new HashSet<Type>());
+        JsonObject schema = BuildTypeSchema(type, new HashSet<Type>(), serializerOptions);
         schema["$schema"] = Draft202012;
         schema["$id"] = CreateTypeId(idPrefix, type, schemaVersion);
         schema["title"] = type.Name;
         return schema;
     }
 
-    private static JsonObject BuildCompositeSchema(Type[] schemaTypes, string idPrefix, JsonObject? previousSchema)
+    private static JsonObject BuildCompositeSchema(
+        Type[] schemaTypes,
+        string idPrefix,
+        JsonObject? previousSchema,
+        JsonSerializerOptions serializerOptions)
     {
         SortedDictionary<string, string> currentSubSchemaVersions = new(StringComparer.Ordinal);
         JsonObject definitions = [];
@@ -80,7 +97,7 @@ public sealed class JsonSchemaBuilder
             string schemaVersion = ResolveSchemaVersion(type);
             currentSubSchemaVersions[key] = schemaVersion;
 
-            JsonObject typeSchema = BuildTypeSchema(type, new HashSet<Type>());
+            JsonObject typeSchema = BuildTypeSchema(type, new HashSet<Type>(), serializerOptions);
             typeSchema["$id"] = CreateTypeId(idPrefix, type, schemaVersion);
             typeSchema["title"] = type.Name;
             definitions[key] = typeSchema;
@@ -115,20 +132,32 @@ public sealed class JsonSchemaBuilder
             : previousRootVersion + 1;
     }
 
-    private static JsonObject BuildTypeSchema(Type type, HashSet<Type> path)
+    private static JsonObject BuildTypeSchema(Type type, HashSet<Type> path, JsonSerializerOptions serializerOptions)
     {
+        if (TryBuildEnumSchema(type, serializerOptions) is { } enumSchema)
+        {
+            return enumSchema;
+        }
+
         if (TryResolvePrimitiveType(type) is { } primitiveType)
         {
             return new JsonObject { ["type"] = primitiveType };
         }
 
-        if (TryGetDictionaryValueType(type) is { } dictionaryValueType)
+        if (TryGetDictionaryTypes(type) is { } dictionaryTypes)
         {
-            return new JsonObject
+            JsonObject schema = new()
             {
                 ["type"] = "object",
-                ["additionalProperties"] = BuildTypeSchema(dictionaryValueType, path)
+                ["additionalProperties"] = BuildTypeSchema(dictionaryTypes.ValueType, path, serializerOptions)
             };
+
+            if (TryBuildDictionaryPropertyNamesSchema(dictionaryTypes.KeyType, serializerOptions) is { } propertyNamesSchema)
+            {
+                schema["propertyNames"] = propertyNamesSchema;
+            }
+
+            return schema;
         }
 
         if (TryGetEnumerableElementType(type) is { } elementType)
@@ -136,7 +165,7 @@ public sealed class JsonSchemaBuilder
             return new JsonObject
             {
                 ["type"] = "array",
-                ["items"] = BuildTypeSchema(elementType, path)
+                ["items"] = BuildTypeSchema(elementType, path, serializerOptions)
             };
         }
 
@@ -151,23 +180,37 @@ public sealed class JsonSchemaBuilder
             return new JsonObject { ["type"] = "object" };
         }
 
-        JsonObject properties = [];
-
-        foreach (PropertyInfo property in targetType
-                     .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                     .Where(static property => property.CanRead && property.GetIndexParameters().Length == 0)
-                     .OrderBy(static property => property.Name, StringComparer.Ordinal))
+        try
         {
-            properties[property.Name] = BuildTypeSchema(property.PropertyType, path);
+            if (TryBuildPolymorphicSchema(targetType, path, serializerOptions) is { } polymorphicSchema)
+            {
+                return polymorphicSchema;
+            }
+
+            JsonObject properties = [];
+
+            foreach (PropertyInfo property in targetType
+                         .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                         .Where(static property => property.CanRead && property.GetIndexParameters().Length == 0)
+                         .Where(static property => property.GetCustomAttribute<JsonIgnoreAttribute>() is null)
+                         .OrderBy(
+                             property => ResolvePropertyName(property, serializerOptions),
+                             StringComparer.Ordinal))
+            {
+                properties[ResolvePropertyName(property, serializerOptions)] =
+                    BuildTypeSchema(property.PropertyType, path, serializerOptions);
+            }
+
+            return new JsonObject
+            {
+                ["type"] = "object",
+                ["properties"] = properties
+            };
         }
-
-        path.Remove(targetType);
-
-        return new JsonObject
+        finally
         {
-            ["type"] = "object",
-            ["properties"] = properties
-        };
+            path.Remove(targetType);
+        }
     }
 
     private static string ResolveSchemaVersion(Type type)
@@ -220,11 +263,6 @@ public sealed class JsonSchemaBuilder
     private static string? TryResolvePrimitiveType(Type type)
     {
         Type targetType = Nullable.GetUnderlyingType(type) ?? type;
-
-        if (targetType.IsEnum)
-        {
-            return "string";
-        }
 
         if (targetType == typeof(string)
             || targetType == typeof(char)
@@ -291,29 +329,208 @@ public sealed class JsonSchemaBuilder
         return enumerableInterface?.GetGenericArguments()[0];
     }
 
-    private static Type? TryGetDictionaryValueType(Type type)
+    private static DictionaryTypes? TryGetDictionaryTypes(Type type)
     {
         Type targetType = Nullable.GetUnderlyingType(type) ?? type;
 
-        if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+        if (targetType.IsGenericType
+            && (targetType.GetGenericTypeDefinition() == typeof(Dictionary<,>)
+                || targetType.GetGenericTypeDefinition() == typeof(IDictionary<,>)
+                || targetType.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)))
         {
-            return targetType.GetGenericArguments()[1];
+            Type[] typeArguments = targetType.GetGenericArguments();
+            return new DictionaryTypes(typeArguments[0], typeArguments[1]);
         }
 
         Type? dictionaryInterface = targetType
             .GetInterfaces()
             .FirstOrDefault(static interfaceType =>
                 interfaceType.IsGenericType
-                && interfaceType.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+                && (interfaceType.GetGenericTypeDefinition() == typeof(IDictionary<,>)
+                    || interfaceType.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)));
 
         if (dictionaryInterface is null)
         {
             return null;
         }
 
-        Type keyType = dictionaryInterface.GetGenericArguments()[0];
+        Type[] dictionaryTypeArguments = dictionaryInterface.GetGenericArguments();
+        return new DictionaryTypes(dictionaryTypeArguments[0], dictionaryTypeArguments[1]);
+    }
 
-        return keyType == typeof(string) ? dictionaryInterface.GetGenericArguments()[1] : null;
+    private static JsonObject? TryBuildEnumSchema(Type type, JsonSerializerOptions serializerOptions)
+    {
+        Type targetType = Nullable.GetUnderlyingType(type) ?? type;
+        if (!targetType.IsEnum)
+        {
+            return null;
+        }
+
+        JsonArray enumValues = [];
+        HashSet<string> serializedValues = new(StringComparer.Ordinal);
+        bool usesStrings = true;
+        bool usesIntegers = true;
+
+        foreach (object enumValue in Enum.GetValues(targetType))
+        {
+            string serializedValue = JsonSerializer.Serialize(enumValue, targetType, serializerOptions);
+            if (!serializedValues.Add(serializedValue))
+            {
+                continue;
+            }
+
+            using JsonDocument jsonDocument = JsonDocument.Parse(serializedValue);
+            JsonElement element = jsonDocument.RootElement;
+
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.String:
+                    enumValues.Add(element.GetString());
+                    usesIntegers = false;
+                    break;
+                case JsonValueKind.Number:
+                    enumValues.Add(ParseJsonNumber(element.GetRawText()));
+                    usesStrings = false;
+                    break;
+                default:
+                    return null;
+            }
+        }
+
+        string schemaType = usesStrings ? "string" : usesIntegers ? "integer" : "number";
+
+        return new JsonObject
+        {
+            ["type"] = schemaType,
+            ["enum"] = enumValues
+        };
+    }
+
+    private static object ParseJsonNumber(string rawText)
+    {
+        if (long.TryParse(rawText, NumberStyles.Integer, CultureInfo.InvariantCulture, out long signedValue))
+        {
+            return signedValue;
+        }
+
+        if (ulong.TryParse(rawText, NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong unsignedValue))
+        {
+            return unsignedValue;
+        }
+
+        return decimal.Parse(rawText, NumberStyles.Number, CultureInfo.InvariantCulture);
+    }
+
+    private static JsonObject? TryBuildDictionaryPropertyNamesSchema(Type keyType, JsonSerializerOptions serializerOptions)
+    {
+        Type targetKeyType = Nullable.GetUnderlyingType(keyType) ?? keyType;
+        if (!targetKeyType.IsEnum)
+        {
+            return null;
+        }
+
+        JsonArray enumValues = [];
+        HashSet<string> seenValues = new(StringComparer.Ordinal);
+        Type dictionaryType = typeof(Dictionary<,>).MakeGenericType(targetKeyType, typeof(int));
+        IDictionary dictionary = (IDictionary)Activator.CreateInstance(dictionaryType)!;
+
+        foreach (object enumValue in Enum.GetValues(targetKeyType))
+        {
+            dictionary[enumValue] = 0;
+        }
+
+        string serializedDictionary = JsonSerializer.Serialize(dictionary, dictionaryType, serializerOptions);
+        using JsonDocument jsonDocument = JsonDocument.Parse(serializedDictionary);
+
+        foreach (JsonProperty property in jsonDocument.RootElement.EnumerateObject())
+        {
+            if (seenValues.Add(property.Name))
+            {
+                enumValues.Add(property.Name);
+            }
+        }
+
+        return new JsonObject { ["enum"] = enumValues };
+    }
+
+    private static JsonObject? TryBuildPolymorphicSchema(
+        Type type,
+        HashSet<Type> path,
+        JsonSerializerOptions serializerOptions)
+    {
+        JsonDerivedTypeAttribute[] derivedTypes = type.GetCustomAttributes<JsonDerivedTypeAttribute>(inherit: false).ToArray();
+        if (derivedTypes.Length == 0)
+        {
+            return null;
+        }
+
+        JsonPolymorphicAttribute? polymorphicAttribute = type.GetCustomAttribute<JsonPolymorphicAttribute>(inherit: false);
+        string discriminatorPropertyName = string.IsNullOrWhiteSpace(polymorphicAttribute?.TypeDiscriminatorPropertyName)
+            ? "$type"
+            : polymorphicAttribute.TypeDiscriminatorPropertyName;
+
+        JsonArray oneOf = [];
+
+        foreach (JsonDerivedTypeAttribute derivedType in derivedTypes)
+        {
+            JsonObject derivedSchema = BuildTypeSchema(derivedType.DerivedType, path, serializerOptions);
+            derivedSchema["type"] ??= "object";
+
+            if (TryCreateJsonValueNode(derivedType.TypeDiscriminator) is { } discriminatorValue)
+            {
+                JsonObject properties = derivedSchema["properties"] as JsonObject ?? [];
+                properties[discriminatorPropertyName] = new JsonObject { ["const"] = discriminatorValue };
+                derivedSchema["properties"] = properties;
+                EnsureRequiredProperty(derivedSchema, discriminatorPropertyName);
+            }
+
+            oneOf.Add(derivedSchema);
+        }
+
+        return new JsonObject { ["oneOf"] = oneOf };
+    }
+
+    private static JsonNode? TryCreateJsonValueNode(object? value)
+    {
+        return value switch
+        {
+            null => null,
+            string stringValue => JsonValue.Create(stringValue),
+            bool boolValue => JsonValue.Create(boolValue),
+            byte byteValue => JsonValue.Create(byteValue),
+            sbyte sbyteValue => JsonValue.Create(sbyteValue),
+            short shortValue => JsonValue.Create(shortValue),
+            ushort ushortValue => JsonValue.Create(ushortValue),
+            int intValue => JsonValue.Create(intValue),
+            uint uintValue => JsonValue.Create(uintValue),
+            long longValue => JsonValue.Create(longValue),
+            ulong ulongValue => JsonValue.Create(ulongValue),
+            float floatValue => JsonValue.Create(floatValue),
+            double doubleValue => JsonValue.Create(doubleValue),
+            decimal decimalValue => JsonValue.Create(decimalValue),
+            _ => JsonValue.Create(value.ToString())
+        };
+    }
+
+    private static void EnsureRequiredProperty(JsonObject schema, string propertyName)
+    {
+        if (schema["required"] is not JsonArray requiredProperties)
+        {
+            requiredProperties = [];
+            schema["required"] = requiredProperties;
+        }
+
+        if (!requiredProperties.Any(node => string.Equals(node?.GetValue<string>(), propertyName, StringComparison.Ordinal)))
+        {
+            requiredProperties.Add(propertyName);
+        }
+    }
+
+    private static string ResolvePropertyName(PropertyInfo property, JsonSerializerOptions serializerOptions)
+    {
+        return property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
+            ?? serializerOptions.PropertyNamingPolicy?.ConvertName(property.Name)
+            ?? property.Name;
     }
 
     private static string CreateTypeId(string idPrefix, Type type, string version)
@@ -444,4 +661,6 @@ public sealed class JsonSchemaBuilder
             }
         }
     }
+
+    private sealed record DictionaryTypes(Type KeyType, Type ValueType);
 }
