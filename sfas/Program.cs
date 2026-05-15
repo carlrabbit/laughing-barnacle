@@ -8,12 +8,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 if (args.Length != 1)
 {
-    Console.Error.WriteLine("Usage: JsonToMarkdown <path-to-source-project.csproj>");
+    Console.Error.WriteLine("Usage: ProjectSplitter <path-to-source-project.csproj>");
     return 1;
 }
 
-var splitter = new ConsoleProjectSplitter();
-return await splitter.SplitAsync(args[0]);
+var projectSplitter = new ConsoleProjectSplitter();
+return await projectSplitter.SplitAsync(args[0]);
 
 internal sealed class ConsoleProjectSplitter
 {
@@ -51,11 +51,7 @@ internal sealed class ConsoleProjectSplitter
         await EnsureBuildSucceedsAsync(buildTargets, "before splitting");
 
         string[] projectPaths = Directory.GetFiles(rootDirectory, "*.csproj", SearchOption.AllDirectories);
-        List<ProjectReferenceUpdate> referenceUpdates = AnalyzeReferenceUpdates(
-            projectPaths,
-            sourceProjectPath,
-            splitFolders,
-            rootDirectory);
+        List<ProjectReferenceUpdate> referenceUpdates = AnalyzeReferenceUpdates(projectPaths, sourceProjectPath, splitFolders);
 
         XDocument sourceProjectDocument = XDocument.Load(sourceProjectPath, LoadOptions.PreserveWhitespace);
         List<string> newProjectPaths = CreateSplitProjects(sourceProjectDocument, sourceProjectPath, splitFolders);
@@ -69,7 +65,7 @@ internal sealed class ConsoleProjectSplitter
                 ?? throw new InvalidOperationException("The destination project directory could not be determined."),
                 splitFolder.FolderName);
 
-            MovePath(splitFolder.FullPath, destinationFolderPath, moveMode, rootDirectory);
+            await MovePathAsync(splitFolder.FullPath, destinationFolderPath, moveMode, rootDirectory);
         }
 
         ApplyProjectReferenceUpdates(referenceUpdates);
@@ -128,8 +124,7 @@ internal sealed class ConsoleProjectSplitter
     private static List<ProjectReferenceUpdate> AnalyzeReferenceUpdates(
         IEnumerable<string> projectPaths,
         string sourceProjectPath,
-        IReadOnlyList<FolderSplitInfo> splitFolders,
-        string rootDirectory)
+        IReadOnlyList<FolderSplitInfo> splitFolders)
     {
         string normalizedSourceProjectPath = Path.GetFullPath(sourceProjectPath);
 
@@ -137,7 +132,7 @@ internal sealed class ConsoleProjectSplitter
             .Where(path => !IsUnderBuildOutput(path))
             .Select(path => Path.GetFullPath(path))
             .Where(path => !path.Equals(normalizedSourceProjectPath, StringComparison.OrdinalIgnoreCase))
-            .Select(path => CreateProjectReferenceUpdate(path, normalizedSourceProjectPath, splitFolders, rootDirectory))
+            .Select(path => CreateProjectReferenceUpdate(path, normalizedSourceProjectPath, splitFolders))
             .Where(update => update is not null)
             .Cast<ProjectReferenceUpdate>()
             .ToList();
@@ -146,8 +141,7 @@ internal sealed class ConsoleProjectSplitter
     private static ProjectReferenceUpdate? CreateProjectReferenceUpdate(
         string referencingProjectPath,
         string sourceProjectPath,
-        IReadOnlyList<FolderSplitInfo> splitFolders,
-        string rootDirectory)
+        IReadOnlyList<FolderSplitInfo> splitFolders)
     {
         XDocument document = XDocument.Load(referencingProjectPath, LoadOptions.PreserveWhitespace);
         XElement projectElement = document.Root ?? throw new InvalidOperationException("Invalid project file.");
@@ -173,7 +167,7 @@ internal sealed class ConsoleProjectSplitter
             return null;
         }
 
-        HashSet<string> usedNamespaces = CollectNamespaceUsage(referencingProjectPath, rootDirectory);
+        HashSet<string> usedNamespaces = CollectNamespaceUsage(referencingProjectPath);
 
         List<string> selectedProjectNames = splitFolders
             .Where(folder => usedNamespaces.Any(used => folder.Namespaces.Any(ns => NamespaceMatches(used, ns))))
@@ -185,7 +179,7 @@ internal sealed class ConsoleProjectSplitter
         return new ProjectReferenceUpdate(referencingProjectPath, sourceProjectPath, selectedProjectNames);
     }
 
-    private static HashSet<string> CollectNamespaceUsage(string projectPath, string rootDirectory)
+    private static HashSet<string> CollectNamespaceUsage(string projectPath)
     {
         HashSet<string> namespaces = [];
         string projectDirectory = Path.GetDirectoryName(projectPath)
@@ -320,9 +314,13 @@ internal sealed class ConsoleProjectSplitter
             }
 
             string projectDirectory = Path.GetDirectoryName(update.ProjectPath)!;
+            string sourceProjectDirectory = Path.GetDirectoryName(update.SourceProjectPath)
+                ?? throw new InvalidOperationException("The source project directory could not be determined.");
+            string sourceProjectParentDirectory = Directory.GetParent(sourceProjectDirectory)?.FullName
+                ?? throw new InvalidOperationException("The source project parent directory could not be determined.");
             foreach (string replacementProjectName in update.ReplacementProjectNames)
             {
-                string replacementPath = Path.Combine(Path.GetDirectoryName(update.SourceProjectPath)!, "..", replacementProjectName,
+                string replacementPath = Path.Combine(sourceProjectParentDirectory, replacementProjectName,
                     $"{replacementProjectName}.csproj");
                 string relativePath = Path.GetRelativePath(projectDirectory, Path.GetFullPath(replacementPath))
                     .Replace('\\', '/');
@@ -340,19 +338,19 @@ internal sealed class ConsoleProjectSplitter
         }
     }
 
-    private static void MovePath(string sourcePath, string destinationPath, ProjectMoveMode mode, string rootDirectory)
+    private static async Task MovePathAsync(string sourcePath, string destinationPath, ProjectMoveMode mode, string rootDirectory)
     {
         if (mode == ProjectMoveMode.Git)
         {
             EnsureParentExists(destinationPath);
-            RunProcess("git", $"-C \"{rootDirectory}\" mv \"{sourcePath}\" \"{destinationPath}\"");
+            await EnsureProcessSucceedsAsync("git", "-C", rootDirectory, "mv", sourcePath, destinationPath);
             return;
         }
 
         if (mode == ProjectMoveMode.Tf)
         {
             EnsureParentExists(destinationPath);
-            RunProcess("tf.exe", $"vc move \"{sourcePath}\" \"{destinationPath}\"");
+            await EnsureProcessSucceedsAsync("tf.exe", "vc", "move", sourcePath, destinationPath);
             return;
         }
 
@@ -373,7 +371,7 @@ internal sealed class ConsoleProjectSplitter
     {
         foreach (string buildTarget in buildTargets)
         {
-            int exitCode = await RunProcessAsync("dotnet", $"build \"{buildTarget}\"");
+            int exitCode = await RunProcessAsync("dotnet", "build", buildTarget);
             if (exitCode != 0)
             {
                 throw new InvalidOperationException($"dotnet build failed {when}. Aborting split operation.");
@@ -406,25 +404,26 @@ internal sealed class ConsoleProjectSplitter
         return [sourceProjectPath];
     }
 
-    private static async Task<int> RunProcessAsync(string fileName, string arguments)
+    private static async Task<int> RunProcessAsync(string fileName, params string[] arguments)
     {
         using Process process = new();
-        process.StartInfo = new ProcessStartInfo
+        ProcessStartInfo processStartInfo = new()
         {
             FileName = fileName,
-            Arguments = arguments,
             RedirectStandardError = true,
             RedirectStandardOutput = true,
             UseShellExecute = false,
         };
-
-        var outputBuilder = new StringBuilder();
+        foreach (string argument in arguments)
+        {
+            processStartInfo.ArgumentList.Add(argument);
+        }
+        process.StartInfo = processStartInfo;
 
         process.OutputDataReceived += (_, eventArgs) =>
         {
             if (!string.IsNullOrEmpty(eventArgs.Data))
             {
-                outputBuilder.AppendLine(eventArgs.Data);
                 Console.WriteLine(eventArgs.Data);
             }
         };
@@ -433,7 +432,6 @@ internal sealed class ConsoleProjectSplitter
         {
             if (!string.IsNullOrEmpty(eventArgs.Data))
             {
-                outputBuilder.AppendLine(eventArgs.Data);
                 Console.Error.WriteLine(eventArgs.Data);
             }
         };
@@ -446,12 +444,12 @@ internal sealed class ConsoleProjectSplitter
         return process.ExitCode;
     }
 
-    private static void RunProcess(string fileName, string arguments)
+    private static async Task EnsureProcessSucceedsAsync(string fileName, params string[] arguments)
     {
-        int exitCode = RunProcessAsync(fileName, arguments).GetAwaiter().GetResult();
+        int exitCode = await RunProcessAsync(fileName, arguments);
         if (exitCode != 0)
         {
-            throw new InvalidOperationException($"Command failed: {fileName} {arguments}");
+            throw new InvalidOperationException($"Command failed: {fileName} {string.Join(' ', arguments)}");
         }
     }
 
@@ -473,7 +471,9 @@ internal sealed class ConsoleProjectSplitter
 
     private static ProjectMoveMode DetermineMoveMode(string rootDirectory)
     {
-        if (Directory.Exists(Path.Combine(rootDirectory, ".tf")) || File.Exists(Path.Combine(rootDirectory, ".tf")))
+        if (Directory.Exists(Path.Combine(rootDirectory, ".tf"))
+            || File.Exists(Path.Combine(rootDirectory, ".tf"))
+            || Directory.Exists(Path.Combine(rootDirectory, "$tf")))
         {
             return ProjectMoveMode.Tf;
         }
