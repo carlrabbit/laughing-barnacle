@@ -5,7 +5,7 @@ namespace JsonSchemaBuilder.Tests;
 
 public class JsonSchemaBuilderTests
 {
-    private readonly JsonSchemaBuilder _sut = new();
+    private readonly JsonSchemaBuilder _schemaBuilder = new();
 
     [Test]
     public async Task BuildSchema_WithSingleTypeAndVersionProperty_UsesVersionInSchemaId()
@@ -14,7 +14,7 @@ public class JsonSchemaBuilderTests
         const string idPrefix = "https://schemas.example.com";
 
         // Act
-        JsonObject schema = _sut.BuildSchema<Models.Invoice>(idPrefix);
+        JsonObject schema = _schemaBuilder.BuildSchema<Models.Invoice>(idPrefix);
 
         // Assert
         await Assert.That(schema["$schema"]!.GetValue<string>()).IsEqualTo("https://json-schema.org/draft/2020-12/schema");
@@ -30,7 +30,7 @@ public class JsonSchemaBuilderTests
         const string idPrefix = "https://schemas.example.com";
 
         // Act
-        JsonObject schema = _sut.BuildSchema(
+        JsonObject schema = _schemaBuilder.BuildSchema(
             [typeof(SchemaSet.Alpha.OrderSchema), typeof(SchemaSet.Beta.CustomerSchema)],
             idPrefix);
 
@@ -49,12 +49,12 @@ public class JsonSchemaBuilderTests
     {
         // Arrange
         const string idPrefix = "https://schemas.example.com";
-        JsonObject firstSchema = _sut.BuildSchema(
+        JsonObject firstSchema = _schemaBuilder.BuildSchema(
             [typeof(SchemaSet.Alpha.OrderSchema), typeof(SchemaSet.Beta.CustomerSchema)],
             idPrefix);
 
         // Act
-        JsonObject secondSchema = _sut.BuildSchema(
+        JsonObject secondSchema = _schemaBuilder.BuildSchema(
             [typeof(SchemaSet.Alpha.OrderSchema), typeof(SchemaSet.Beta.CustomerSchema)],
             idPrefix,
             firstSchema);
@@ -68,12 +68,12 @@ public class JsonSchemaBuilderTests
     {
         // Arrange
         const string idPrefix = "https://schemas.example.com";
-        JsonObject firstSchema = _sut.BuildSchema(
+        JsonObject firstSchema = _schemaBuilder.BuildSchema(
             [typeof(SchemaSet.Alpha.OrderSchema), typeof(SchemaSet.Beta.CustomerSchema)],
             idPrefix);
 
         // Act
-        JsonObject secondSchema = _sut.BuildSchema(
+        JsonObject secondSchema = _schemaBuilder.BuildSchema(
             [
                 typeof(SchemaSet.Alpha.OrderSchema),
                 typeof(SchemaSet.Beta.CustomerSchema),

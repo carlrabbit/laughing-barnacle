@@ -10,11 +10,33 @@ public sealed class JsonSchemaBuilder
     private const string Draft202012 = "https://json-schema.org/draft/2020-12/schema";
     private const string VersionCommentPrefix = "subschema-versions:";
 
+    /// <summary>
+    /// Builds a JSON schema for the provided type.
+    /// </summary>
+    /// <typeparam name="T">The type to convert to schema.</typeparam>
+    /// <param name="idPrefix">The base prefix used to compose schema IDs.</param>
+    /// <param name="previousSchema">An optional previous root schema used for root version comparisons.</param>
+    /// <returns>The generated JSON schema document.</returns>
+    /// <remarks>
+    /// When <typeparamref name="T" /> declares a non-static string <c>Version</c> property, the builder attempts to
+    /// instantiate the type using its parameterless constructor to read the value.
+    /// </remarks>
     public JsonObject BuildSchema<T>(string idPrefix, JsonObject? previousSchema = null) where T : notnull
     {
         return BuildSchema([typeof(T)], idPrefix, previousSchema);
     }
 
+    /// <summary>
+    /// Builds a JSON schema for one or more types.
+    /// </summary>
+    /// <param name="types">The types to convert to schema definitions.</param>
+    /// <param name="idPrefix">The base prefix used to compose schema IDs.</param>
+    /// <param name="previousSchema">An optional previous root schema used for root version comparisons.</param>
+    /// <returns>The generated JSON schema document.</returns>
+    /// <remarks>
+    /// For types that declare a non-static string <c>Version</c> property, the builder attempts to instantiate the
+    /// type using its parameterless constructor to read the value.
+    /// </remarks>
     public JsonObject BuildSchema(IEnumerable<Type> types, string idPrefix, JsonObject? previousSchema = null)
     {
         ArgumentNullException.ThrowIfNull(types);
@@ -176,7 +198,15 @@ public sealed class JsonSchemaBuilder
         {
             return Activator.CreateInstance(type);
         }
-        catch
+        catch (MissingMethodException)
+        {
+            return null;
+        }
+        catch (MemberAccessException)
+        {
+            return null;
+        }
+        catch (TargetInvocationException)
         {
             return null;
         }
@@ -318,6 +348,11 @@ public sealed class JsonSchemaBuilder
             .ToArray();
 
         if (namespaceParts.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        if (namespaceParts.All(static parts => parts.Length == 0))
         {
             return string.Empty;
         }
