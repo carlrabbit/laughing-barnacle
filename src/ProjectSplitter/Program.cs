@@ -6,5 +6,5 @@ if (args.Length != 1)
     return 1;
 }
 
-var projectSplitter = new ProjectSplitterCli();
-return await projectSplitter.SplitAsync(args[0]);
+var cli = new ProjectSplitterCli();
+return await cli.SplitAsync(args[0]);

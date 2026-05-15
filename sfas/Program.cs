@@ -36,15 +36,19 @@ public static class JsonToMarkdownConverter
     public static IEnumerable<string> Convert(string json)
     {
         using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
+        JsonElement root = doc.RootElement;
 
         if (root.ValueKind != JsonValueKind.Array)
+        {
             throw new ArgumentException("JSON must be an array of objects.", nameof(json));
+        }
 
-        foreach (var element in root.EnumerateArray())
+        foreach (JsonElement element in root.EnumerateArray())
         {
             if (element.ValueKind != JsonValueKind.Object)
+            {
                 continue;
+            }
 
             yield return BuildTable(element);
         }
@@ -56,9 +60,9 @@ public static class JsonToMarkdownConverter
         sb.AppendLine("|Property|Description|");
         sb.AppendLine("|---|---|");
 
-        foreach (var prop in obj.EnumerateObject())
+        foreach (JsonProperty prop in obj.EnumerateObject())
         {
-            var value = prop.Value.GetString() ?? string.Empty;
+            string value = prop.Value.GetString() ?? string.Empty;
             sb.AppendLine($"|{prop.Name}|{value}|");
         }
 
