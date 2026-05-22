@@ -140,22 +140,70 @@ public sealed class MarkdownExtractor
 
         if (paragraphKind == ParagraphKind.Unknown)
         {
-            if (normalized.Contains("quote", StringComparison.Ordinal) ||
-                normalized.Contains("blockquote", StringComparison.Ordinal) ||
-                normalized.Contains("citation", StringComparison.Ordinal))
+            if (StyleContainsAnyToken(style, ["quote", "blockquote", "citation"]))
             {
                 paragraphKind = ParagraphKind.Quote;
             }
-            else if (normalized.Contains("code", StringComparison.Ordinal) ||
-                     normalized.Contains("preformatted", StringComparison.Ordinal) ||
-                     normalized.Contains("verbatim", StringComparison.Ordinal) ||
-                     normalized.Contains("source", StringComparison.Ordinal))
+            else if (StyleContainsAnyToken(style, ["code", "preformatted", "verbatim", "source"]))
             {
                 paragraphKind = ParagraphKind.CodeBlock;
             }
         }
 
         return paragraphKind != ParagraphKind.Unknown;
+    }
+
+    private static bool StyleContainsAnyToken(string style, IReadOnlyCollection<string> tokensToMatch)
+    {
+        if (string.IsNullOrWhiteSpace(style))
+        {
+            return false;
+        }
+
+        HashSet<string> tokens = TokenizeStyle(style);
+        return tokensToMatch.Any(tokens.Contains);
+    }
+
+    private static HashSet<string> TokenizeStyle(string style)
+    {
+        var tokens = new HashSet<string>(StringComparer.Ordinal);
+        var token = new StringBuilder();
+
+        for (int i = 0; i < style.Length; i++)
+        {
+            char current = style[i];
+            if (!char.IsLetterOrDigit(current))
+            {
+                AddToken(token, tokens);
+                continue;
+            }
+
+            bool startsNewToken = token.Length > 0 &&
+                char.IsUpper(current) &&
+                i > 0 &&
+                char.IsLower(style[i - 1]);
+
+            if (startsNewToken)
+            {
+                AddToken(token, tokens);
+            }
+
+            token.Append(char.ToLowerInvariant(current));
+        }
+
+        AddToken(token, tokens);
+        return tokens;
+    }
+
+    private static void AddToken(StringBuilder tokenBuilder, ISet<string> tokens)
+    {
+        if (tokenBuilder.Length == 0)
+        {
+            return;
+        }
+
+        tokens.Add(tokenBuilder.ToString());
+        tokenBuilder.Clear();
     }
 
     private static string NormalizeStyle(string style)
@@ -217,9 +265,9 @@ public sealed class MarkdownExtractor
         }
 
         RunProperties? properties = run.RunProperties;
-        bool isBold = IsRunPropertyEnabled(properties?.Bold);
-        bool isItalic = IsRunPropertyEnabled(properties?.Italic);
-        bool isStrikethrough = IsRunPropertyEnabled(properties?.Strike);
+        bool isBold = IsRunPropertyTrueOrDefault(properties?.Bold);
+        bool isItalic = IsRunPropertyTrueOrDefault(properties?.Italic);
+        bool isStrikethrough = IsRunPropertyTrueOrDefault(properties?.Strike);
 
         if (isBold)
         {
@@ -239,7 +287,7 @@ public sealed class MarkdownExtractor
         return text;
     }
 
-    private static bool IsRunPropertyEnabled(OnOffType? property) => property is { Val.Value: not false } or { Val: null };
+    private static bool IsRunPropertyTrueOrDefault(OnOffType? property) => property is { Val.Value: not false } or { Val: null };
 
     private static string ExtractHyperlinkText(Hyperlink hyperlink, MainDocumentPart mainPart, bool applyRunFormatting)
     {
@@ -424,7 +472,23 @@ public sealed class MarkdownExtractor
 
     private static string FormatCodeBlock(string text)
     {
-        string fence = text.Contains("```", StringComparison.Ordinal) ? "````" : "```";
+        int longestBacktickRun = 0;
+        int currentBacktickRun = 0;
+
+        foreach (char character in text)
+        {
+            if (character == '`')
+            {
+                currentBacktickRun++;
+                longestBacktickRun = Math.Max(longestBacktickRun, currentBacktickRun);
+            }
+            else
+            {
+                currentBacktickRun = 0;
+            }
+        }
+
+        string fence = new('`', Math.Max(3, longestBacktickRun + 1));
         return $"{fence}\n{text}\n{fence}";
     }
 }

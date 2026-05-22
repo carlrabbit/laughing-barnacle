@@ -116,8 +116,8 @@ public class MarkdownExtractorTests
             // Assert
             string markdown = await File.ReadAllTextAsync(outputPath);
             await Assert.That(markdown).Contains("> Quoted content");
-            await Assert.That(markdown).Contains("```");
-            await Assert.That(markdown).Contains("var answer = 42;");
+            await Assert.That(markdown).Contains("var answer = `42` and ```marker");
+            await Assert.That(markdown).Contains("\n```");
             await Assert.That(markdown).Contains("**bold**");
             await Assert.That(markdown).Contains("*italic*");
             await Assert.That(markdown).Contains("~~struck~~");
@@ -194,7 +194,7 @@ public class MarkdownExtractorTests
                     new Run(new Text("Quoted content"))),
                 new Paragraph(
                     new ParagraphProperties(new ParagraphStyleId { Val = "TeamCodeStyle" }),
-                    new Run(new Text("var answer = 42;"))),
+                    new Run(new Text("var answer = `42` and ```marker"))),
                 new Paragraph(
                     new Run(new RunProperties(new Bold()), new Text("bold")),
                     new Run(new Text(" ")),
