@@ -245,7 +245,7 @@ public sealed class MarkdownExtractor
 
     private static string ExtractTableCellText(TableCell cell, MainDocumentPart mainPart)
     {
-        return string.Join("<br>", cell.Elements<Paragraph>()
+        return string.Join(" ", cell.Elements<Paragraph>()
             .Select(paragraph => ExtractParagraphText(paragraph, mainPart).Trim())
             .Where(text => !string.IsNullOrEmpty(text)));
     }
@@ -261,7 +261,12 @@ public sealed class MarkdownExtractor
         return padded;
     }
 
-    private static string EscapeTableCellText(string text) => text.Replace("|", "\\|", StringComparison.Ordinal);
+    private static string EscapeTableCellText(string text)
+    {
+        return text
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("|", "\\|", StringComparison.Ordinal);
+    }
 
     private static void AppendImageMarkdownLines(
         StringBuilder markdown,
