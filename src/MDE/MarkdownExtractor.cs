@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Blip = DocumentFormat.OpenXml.Drawing.Blip;
@@ -27,18 +28,30 @@ public sealed class MarkdownExtractor
         var markdown = new StringBuilder();
         int imageIndex = 0;
 
-        foreach (Paragraph paragraph in body.Elements<Paragraph>())
+        foreach (OpenXmlElement element in body.ChildElements)
         {
-            ParagraphKind paragraphKind = ResolveParagraphKind(paragraph, styleNamesById, unknownStyles);
-            string text = string.Concat(paragraph.Descendants<Text>().Select(textElement => textElement.Text)).Trim();
-
-            if (!string.IsNullOrEmpty(text))
+            if (element is Paragraph paragraph)
             {
-                markdown.AppendLine(FormatMarkdownLine(paragraphKind, text));
+                ParagraphKind paragraphKind = ResolveParagraphKind(paragraph, styleNamesById, unknownStyles);
+                string text = ExtractParagraphText(paragraph, mainPart).Trim();
+
+                if (!string.IsNullOrEmpty(text))
+                {
+                    markdown.AppendLine(FormatMarkdownLine(paragraphKind, text));
+                    markdown.AppendLine();
+                }
+
+                AppendImageMarkdownLines(markdown, paragraph, mainPart, imageDirectory, outputFile, ref imageIndex);
+            }
+            else if (element is Table table)
+            {
+                foreach (string tableLine in ConvertTableToMarkdown(table, mainPart))
+                {
+                    markdown.AppendLine(tableLine);
+                }
+
                 markdown.AppendLine();
             }
-
-            AppendImageMarkdownLines(markdown, paragraph, mainPart, imageDirectory, outputFile, ref imageIndex);
         }
 
         EnsureParentDirectoryExists(outputFile);
@@ -150,6 +163,105 @@ public sealed class MarkdownExtractor
             _ => text
         };
     }
+
+    private static string ExtractParagraphText(Paragraph paragraph, MainDocumentPart mainPart)
+    {
+        var textBuilder = new StringBuilder();
+
+        foreach (OpenXmlElement child in paragraph.ChildElements)
+        {
+            switch (child)
+            {
+                case Run run:
+                    textBuilder.Append(ExtractRunText(run));
+                    break;
+                case Hyperlink hyperlink:
+                    textBuilder.Append(ExtractHyperlinkText(hyperlink, mainPart));
+                    break;
+            }
+        }
+
+        return textBuilder.ToString();
+    }
+
+    private static string ExtractRunText(Run run) => string.Concat(run.Descendants<Text>().Select(text => text.Text));
+
+    private static string ExtractHyperlinkText(Hyperlink hyperlink, MainDocumentPart mainPart)
+    {
+        string text = string.Concat(hyperlink.Descendants<Text>().Select(textElement => textElement.Text)).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        string? url = ResolveHyperlinkUrl(hyperlink, mainPart);
+        return string.IsNullOrWhiteSpace(url) ? text : $"[{text}]({url})";
+    }
+
+    private static string? ResolveHyperlinkUrl(Hyperlink hyperlink, MainDocumentPart mainPart)
+    {
+        string? relationshipId = hyperlink.Id?.Value;
+        if (!string.IsNullOrWhiteSpace(relationshipId))
+        {
+            HyperlinkRelationship? relationship = mainPart.HyperlinkRelationships.FirstOrDefault(candidate =>
+                candidate.Id.Equals(relationshipId, StringComparison.Ordinal));
+            if (relationship is not null)
+            {
+                return relationship.Uri.ToString();
+            }
+        }
+
+        string? anchor = hyperlink.Anchor?.Value;
+        return string.IsNullOrWhiteSpace(anchor) ? null : $"#{anchor}";
+    }
+
+    private static IEnumerable<string> ConvertTableToMarkdown(Table table, MainDocumentPart mainPart)
+    {
+        List<IReadOnlyList<string>> rows = table.Elements<TableRow>()
+            .Select(row => row.Elements<TableCell>()
+                .Select(cell => EscapeTableCellText(ExtractTableCellText(cell, mainPart)))
+                .ToList())
+            .Cast<IReadOnlyList<string>>()
+            .Where(row => row.Count > 0)
+            .ToList();
+
+        if (rows.Count == 0)
+        {
+            return [];
+        }
+
+        int columnCount = rows.Max(row => row.Count);
+        List<IReadOnlyList<string>> paddedRows = rows
+            .Select(row => PadCells(row, columnCount))
+            .ToList();
+
+        string header = $"| {string.Join(" | ", paddedRows[0])} |";
+        string separator = $"| {string.Join(" | ", Enumerable.Repeat("---", columnCount))} |";
+
+        var markdownRows = new List<string> { header, separator };
+        markdownRows.AddRange(paddedRows.Skip(1).Select(row => $"| {string.Join(" | ", row)} |"));
+        return markdownRows;
+    }
+
+    private static string ExtractTableCellText(TableCell cell, MainDocumentPart mainPart)
+    {
+        return string.Join("<br>", cell.Elements<Paragraph>()
+            .Select(paragraph => ExtractParagraphText(paragraph, mainPart).Trim())
+            .Where(text => !string.IsNullOrEmpty(text)));
+    }
+
+    private static IReadOnlyList<string> PadCells(IReadOnlyList<string> row, int columnCount)
+    {
+        var padded = row.ToList();
+        while (padded.Count < columnCount)
+        {
+            padded.Add(string.Empty);
+        }
+
+        return padded;
+    }
+
+    private static string EscapeTableCellText(string text) => text.Replace("|", "\\|", StringComparison.Ordinal);
 
     private static void AppendImageMarkdownLines(
         StringBuilder markdown,

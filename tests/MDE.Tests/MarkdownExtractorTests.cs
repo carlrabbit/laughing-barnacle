@@ -60,6 +60,39 @@ public class MarkdownExtractorTests
         }
     }
 
+    [Test]
+    public async Task Extract_WithHyperlinkAndTable_WritesMarkdownLinkAndTable()
+    {
+        // Arrange
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"mde-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string inputPath = Path.Combine(tempDirectory, "input.docx");
+            string outputPath = Path.Combine(tempDirectory, "output.md");
+            string imageDirectory = Path.Combine(tempDirectory, "images");
+            string mappingPath = Path.Combine(tempDirectory, "mapping.json");
+
+            CreateDocumentWithHyperlinkAndTable(inputPath);
+            var extractor = new MarkdownExtractor();
+
+            // Act
+            extractor.Extract(inputPath, outputPath, imageDirectory, mappingPath);
+
+            // Assert
+            string markdown = await File.ReadAllTextAsync(outputPath);
+            await Assert.That(markdown).Contains("[Example](https://example.com/)");
+            await Assert.That(markdown).Contains("| Name | Value |");
+            await Assert.That(markdown).Contains("| --- | --- |");
+            await Assert.That(markdown).Contains("| Item | 42 |");
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
     private static void CreateDocument(string path)
     {
         using WordprocessingDocument document = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
@@ -87,6 +120,29 @@ public class MarkdownExtractorTests
                 StyleId = "CustomHeadingStyle",
                 StyleName = new StyleName { Val = "Überschrift 1" }
             });
+
+        mainPart.Document.Save();
+    }
+
+    private static void CreateDocumentWithHyperlinkAndTable(string path)
+    {
+        using WordprocessingDocument document = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
+
+        MainDocumentPart mainPart = document.AddMainDocumentPart();
+        HyperlinkRelationship hyperlinkRelationship = mainPart.AddHyperlinkRelationship(new Uri("https://example.com/"), true);
+
+        mainPart.Document = new Document(
+            new Body(
+                new Paragraph(
+                    new Run(new Text("Visit ")),
+                    new Hyperlink(new Run(new Text("Example"))) { Id = hyperlinkRelationship.Id }),
+                new Table(
+                    new TableRow(
+                        new TableCell(new Paragraph(new Run(new Text("Name")))),
+                        new TableCell(new Paragraph(new Run(new Text("Value"))))),
+                    new TableRow(
+                        new TableCell(new Paragraph(new Run(new Text("Item")))),
+                        new TableCell(new Paragraph(new Run(new Text("42"))))))));
 
         mainPart.Document.Save();
     }
