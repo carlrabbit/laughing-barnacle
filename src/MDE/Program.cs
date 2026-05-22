@@ -7,12 +7,6 @@ if (!MarkdownExtractorCliArguments.TryParse(args, out MarkdownExtractorCliArgume
     return 1;
 }
 
-if (options is null)
-{
-    Console.Error.WriteLine("Unable to parse command line arguments.");
-    return 1;
-}
-
 if (!File.Exists(options.InputFile))
 {
     Console.Error.WriteLine($"Input file not found: {options.InputFile}");

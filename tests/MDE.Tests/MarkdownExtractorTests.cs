@@ -17,10 +17,11 @@ public class MarkdownExtractorTests
         bool success = MarkdownExtractorCliArguments.TryParse([inputPath], out MarkdownExtractorCliArguments? options, out string? _);
 
         // Assert
+        string expectedImageDirectory = $"{Path.Combine(Path.GetDirectoryName(inputPath) ?? string.Empty, Path.GetFileNameWithoutExtension(inputPath))}_imaged";
         await Assert.That(success).IsTrue();
         await Assert.That(options).IsNotNull();
         await Assert.That(options!.OutputFile).IsEqualTo(Path.ChangeExtension(inputPath, ".md"));
-        await Assert.That(options.ImageDirectory).IsEqualTo($"{Path.Combine(Path.GetDirectoryName(inputPath) ?? string.Empty, Path.GetFileNameWithoutExtension(inputPath))}_imaged");
+        await Assert.That(options.ImageDirectory).IsEqualTo(expectedImageDirectory);
         await Assert.That(options.MappingFile).IsEqualTo($"{inputPath}.mapping.json");
     }
 
@@ -51,7 +52,7 @@ public class MarkdownExtractorTests
 
             string mapping = await File.ReadAllTextAsync(mappingPath);
             await Assert.That(mapping).Contains("Markdown mapping targets");
-            await Assert.That(mapping).Contains("\"Überschrift 1\": \"unknown\"");
+            await Assert.That(mapping).Contains("\"\\u00DCberschrift 1\": \"unknown\"");
         }
         finally
         {

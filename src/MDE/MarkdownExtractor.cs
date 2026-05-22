@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -97,12 +96,13 @@ public sealed class MarkdownExtractor
             return paragraphKind;
         }
 
-        if (styleNamesById.TryGetValue(styleId, out string? styleName) && TryResolveKind(styleName, out paragraphKind))
+        styleNamesById.TryGetValue(styleId, out string? styleName);
+        if (!string.IsNullOrWhiteSpace(styleName) && TryResolveKind(styleName, out paragraphKind))
         {
             return paragraphKind;
         }
 
-        unknownStyles.Add(styleNamesById.TryGetValue(styleId, out string? mappedStyleName) ? mappedStyleName : styleId);
+        unknownStyles.Add(styleName ?? styleId);
         return ParagraphKind.Paragraph;
     }
 
@@ -184,7 +184,8 @@ public sealed class MarkdownExtractor
             using var destination = File.Create(imagePath);
             source.CopyTo(destination);
 
-            string outputDirectory = Path.GetDirectoryName(outputFile) ?? Directory.GetCurrentDirectory();
+            string outputDirectory = Path.GetDirectoryName(Path.GetFullPath(outputFile))
+                ?? throw new InvalidOperationException("The output file directory could not be resolved.");
             string relativePath = Path.GetRelativePath(outputDirectory, imagePath).Replace('\\', '/');
             markdown.AppendLine($"![]({relativePath})");
             markdown.AppendLine();
@@ -220,8 +221,7 @@ public sealed class MarkdownExtractor
 
         var serializerOptions = new JsonSerializerOptions
         {
-            WriteIndented = true,
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            WriteIndented = true
         };
 
         File.WriteAllText(mappingFile, JsonSerializer.Serialize(mapping, serializerOptions), Encoding.UTF8);

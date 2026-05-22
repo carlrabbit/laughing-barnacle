@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace MDE;
 
 public sealed record MarkdownExtractorCliArguments(
@@ -8,6 +10,7 @@ public sealed record MarkdownExtractorCliArguments(
 {
     public static bool TryParse(
         IReadOnlyList<string> args,
+        [NotNullWhen(true)]
         out MarkdownExtractorCliArguments? options,
         out string? errorMessage)
     {
