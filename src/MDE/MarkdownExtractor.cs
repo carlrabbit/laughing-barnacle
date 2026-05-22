@@ -33,7 +33,7 @@ public sealed class MarkdownExtractor
             if (element is Paragraph paragraph)
             {
                 ParagraphKind paragraphKind = ResolveParagraphKind(paragraph, styleNamesById, unknownStyles);
-                string text = ExtractParagraphText(paragraph, mainPart).Trim();
+                string text = ExtractParagraphText(paragraph, mainPart, applyRunFormatting: paragraphKind.Type != ParagraphType.CodeBlock).Trim();
 
                 if (!string.IsNullOrEmpty(text))
                 {
@@ -133,8 +133,27 @@ public sealed class MarkdownExtractor
             "heading6" or "h6" => ParagraphKind.Heading(6),
             "listbullet" or "bullet" or "unorderedlist" => ParagraphKind.UnorderedList,
             "listnumber" or "numberedlist" or "orderedlist" => ParagraphKind.OrderedList,
+            "quote" or "blockquote" => ParagraphKind.Quote,
+            "code" or "codeblock" or "preformattedtext" => ParagraphKind.CodeBlock,
             _ => ParagraphKind.Unknown
         };
+
+        if (paragraphKind == ParagraphKind.Unknown)
+        {
+            if (normalized.Contains("quote", StringComparison.Ordinal) ||
+                normalized.Contains("blockquote", StringComparison.Ordinal) ||
+                normalized.Contains("citation", StringComparison.Ordinal))
+            {
+                paragraphKind = ParagraphKind.Quote;
+            }
+            else if (normalized.Contains("code", StringComparison.Ordinal) ||
+                     normalized.Contains("preformatted", StringComparison.Ordinal) ||
+                     normalized.Contains("verbatim", StringComparison.Ordinal) ||
+                     normalized.Contains("source", StringComparison.Ordinal))
+            {
+                paragraphKind = ParagraphKind.CodeBlock;
+            }
+        }
 
         return paragraphKind != ParagraphKind.Unknown;
     }
@@ -160,23 +179,28 @@ public sealed class MarkdownExtractor
             { Type: ParagraphType.Heading } => $"{new string('#', paragraphKind.Level)} {text}",
             { Type: ParagraphType.UnorderedList } => $"- {text}",
             { Type: ParagraphType.OrderedList } => $"1. {text}",
+            { Type: ParagraphType.Quote } => $"> {text}",
+            { Type: ParagraphType.CodeBlock } => FormatCodeBlock(text),
             _ => text
         };
     }
 
-    private static string ExtractParagraphText(Paragraph paragraph, MainDocumentPart mainPart)
+    private static string ExtractParagraphText(Paragraph paragraph, MainDocumentPart mainPart, bool applyRunFormatting)
+        => ExtractInlineText(paragraph.ChildElements, mainPart, applyRunFormatting);
+
+    private static string ExtractInlineText(IEnumerable<OpenXmlElement> elements, MainDocumentPart mainPart, bool applyRunFormatting)
     {
         var textBuilder = new StringBuilder();
 
-        foreach (OpenXmlElement child in paragraph.ChildElements)
+        foreach (OpenXmlElement child in elements)
         {
             switch (child)
             {
                 case Run run:
-                    textBuilder.Append(ExtractRunText(run));
+                    textBuilder.Append(ExtractRunText(run, applyRunFormatting));
                     break;
                 case Hyperlink hyperlink:
-                    textBuilder.Append(ExtractHyperlinkText(hyperlink, mainPart));
+                    textBuilder.Append(ExtractHyperlinkText(hyperlink, mainPart, applyRunFormatting));
                     break;
             }
         }
@@ -184,11 +208,42 @@ public sealed class MarkdownExtractor
         return textBuilder.ToString();
     }
 
-    private static string ExtractRunText(Run run) => string.Concat(run.Descendants<Text>().Select(text => text.Text));
-
-    private static string ExtractHyperlinkText(Hyperlink hyperlink, MainDocumentPart mainPart)
+    private static string ExtractRunText(Run run, bool applyFormatting)
     {
-        string text = string.Concat(hyperlink.Descendants<Text>().Select(textElement => textElement.Text)).Trim();
+        string text = string.Concat(run.Descendants<Text>().Select(textElement => textElement.Text));
+        if (!applyFormatting || string.IsNullOrEmpty(text))
+        {
+            return text;
+        }
+
+        RunProperties? properties = run.RunProperties;
+        bool isBold = IsRunPropertyEnabled(properties?.Bold);
+        bool isItalic = IsRunPropertyEnabled(properties?.Italic);
+        bool isStrikethrough = IsRunPropertyEnabled(properties?.Strike);
+
+        if (isBold)
+        {
+            text = $"**{text}**";
+        }
+
+        if (isItalic)
+        {
+            text = $"*{text}*";
+        }
+
+        if (isStrikethrough)
+        {
+            text = $"~~{text}~~";
+        }
+
+        return text;
+    }
+
+    private static bool IsRunPropertyEnabled(OnOffType? property) => property is { Val.Value: not false } or { Val: null };
+
+    private static string ExtractHyperlinkText(Hyperlink hyperlink, MainDocumentPart mainPart, bool applyRunFormatting)
+    {
+        string text = ExtractInlineText(hyperlink.ChildElements, mainPart, applyRunFormatting).Trim();
         if (string.IsNullOrWhiteSpace(text))
         {
             return string.Empty;
@@ -246,7 +301,7 @@ public sealed class MarkdownExtractor
     private static string ExtractTableCellText(TableCell cell, MainDocumentPart mainPart)
     {
         return string.Join(" ", cell.Elements<Paragraph>()
-            .Select(paragraph => ExtractParagraphText(paragraph, mainPart).Trim())
+            .Select(paragraph => ExtractParagraphText(paragraph, mainPart, applyRunFormatting: true).Trim())
             .Where(text => !string.IsNullOrEmpty(text)));
     }
 
@@ -328,7 +383,8 @@ public sealed class MarkdownExtractor
 
         var mapping = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
-            ["_comment"] = "Markdown mapping targets: heading1, heading2, heading3, heading4, heading5, heading6, paragraph, unordered-list, ordered-list, image, unknown"
+            ["_comment"] =
+                "Markdown mapping targets: heading1, heading2, heading3, heading4, heading5, heading6, paragraph, unordered-list, ordered-list, blockquote, code-block, image, unknown"
         };
 
         foreach (string unknownStyle in unknownStyles)
@@ -349,6 +405,8 @@ public sealed class MarkdownExtractor
         public static ParagraphKind Paragraph => new(ParagraphType.Paragraph, 0);
         public static ParagraphKind UnorderedList => new(ParagraphType.UnorderedList, 0);
         public static ParagraphKind OrderedList => new(ParagraphType.OrderedList, 0);
+        public static ParagraphKind Quote => new(ParagraphType.Quote, 0);
+        public static ParagraphKind CodeBlock => new(ParagraphType.CodeBlock, 0);
         public static ParagraphKind Unknown => new(ParagraphType.Unknown, 0);
         public static ParagraphKind Heading(int level) => new(ParagraphType.Heading, level);
     }
@@ -359,6 +417,14 @@ public sealed class MarkdownExtractor
         Heading,
         UnorderedList,
         OrderedList,
+        Quote,
+        CodeBlock,
         Unknown
+    }
+
+    private static string FormatCodeBlock(string text)
+    {
+        string fence = text.Contains("```", StringComparison.Ordinal) ? "````" : "```";
+        return $"{fence}\n{text}\n{fence}";
     }
 }

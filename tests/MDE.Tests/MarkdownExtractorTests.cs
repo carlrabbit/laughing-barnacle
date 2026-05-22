@@ -93,6 +93,41 @@ public class MarkdownExtractorTests
         }
     }
 
+    [Test]
+    public async Task Extract_WithQuoteCodeAndInlineFormatting_WritesExpectedMarkdown()
+    {
+        // Arrange
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"mde-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            string inputPath = Path.Combine(tempDirectory, "input.docx");
+            string outputPath = Path.Combine(tempDirectory, "output.md");
+            string imageDirectory = Path.Combine(tempDirectory, "images");
+            string mappingPath = Path.Combine(tempDirectory, "mapping.json");
+
+            CreateDocumentWithQuoteCodeAndInlineFormatting(inputPath);
+            var extractor = new MarkdownExtractor();
+
+            // Act
+            extractor.Extract(inputPath, outputPath, imageDirectory, mappingPath);
+
+            // Assert
+            string markdown = await File.ReadAllTextAsync(outputPath);
+            await Assert.That(markdown).Contains("> Quoted content");
+            await Assert.That(markdown).Contains("```");
+            await Assert.That(markdown).Contains("var answer = 42;");
+            await Assert.That(markdown).Contains("**bold**");
+            await Assert.That(markdown).Contains("*italic*");
+            await Assert.That(markdown).Contains("~~struck~~");
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
     private static void CreateDocument(string path)
     {
         using WordprocessingDocument document = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
@@ -143,6 +178,44 @@ public class MarkdownExtractorTests
                     new TableRow(
                         new TableCell(new Paragraph(new Run(new Text("Item")))),
                         new TableCell(new Paragraph(new Run(new Text("42"))))))));
+
+        mainPart.Document.Save();
+    }
+
+    private static void CreateDocumentWithQuoteCodeAndInlineFormatting(string path)
+    {
+        using WordprocessingDocument document = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
+
+        MainDocumentPart mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new Document(
+            new Body(
+                new Paragraph(
+                    new ParagraphProperties(new ParagraphStyleId { Val = "CustomQuoteStyle" }),
+                    new Run(new Text("Quoted content"))),
+                new Paragraph(
+                    new ParagraphProperties(new ParagraphStyleId { Val = "TeamCodeStyle" }),
+                    new Run(new Text("var answer = 42;"))),
+                new Paragraph(
+                    new Run(new RunProperties(new Bold()), new Text("bold")),
+                    new Run(new Text(" ")),
+                    new Run(new RunProperties(new Italic()), new Text("italic")),
+                    new Run(new Text(" ")),
+                    new Run(new RunProperties(new Strike()), new Text("struck")))));
+
+        StyleDefinitionsPart stylesPart = mainPart.AddNewPart<StyleDefinitionsPart>();
+        stylesPart.Styles = new Styles(
+            new Style
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = "CustomQuoteStyle",
+                StyleName = new StyleName { Val = "My Fancy Quote Block" }
+            },
+            new Style
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = "TeamCodeStyle",
+                StyleName = new StyleName { Val = "Engineering Source Code Snippet" }
+            });
 
         mainPart.Document.Save();
     }
