@@ -1,4 +1,7 @@
 namespace Binstore;
+/// <summary>
+/// Defines the contract for i write once binary store.
+/// </summary>
 
 public interface IWriteOnceBinaryStore
 {

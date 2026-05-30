@@ -2,14 +2,31 @@ using System.Buffers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Binstore;
+/// <summary>
+/// Represents write once binary store.
+/// </summary>
 
 public sealed class WriteOnceBinaryStore(BinStoreDbContext dbContext) : IWriteOnceBinaryStore
 {
+    /// <summary>
+    /// Performs the store async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="value">The value.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
     public Task<BinStoreResult> StoreAsync(string key, byte[] value, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(value);
         return StoreAsync(key, new MemoryStream(value, writable: false), cancellationToken);
     }
+    /// <summary>
+    /// Performs the store async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="valueStream">The value stream.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public async Task<BinStoreResult> StoreAsync(
         string key,
@@ -100,6 +117,12 @@ public sealed class WriteOnceBinaryStore(BinStoreDbContext dbContext) : IWriteOn
 
         return new BinStoreResult(true, record.Id, record.TotalBytes, record.ChunkCount);
     }
+    /// <summary>
+    /// Performs the get stream async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public async Task<Stream?> GetStreamAsync(string key, CancellationToken cancellationToken = default)
     {

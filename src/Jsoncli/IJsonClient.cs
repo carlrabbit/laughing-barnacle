@@ -2,6 +2,9 @@ using System.Text.Json;
 using Jsonstore;
 
 namespace Jsoncli;
+/// <summary>
+/// Defines the contract for i json client.
+/// </summary>
 
 public interface IJsonClient
 {

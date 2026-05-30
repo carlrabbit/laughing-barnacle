@@ -1,6 +1,9 @@
 using System.Text.Json.Serialization;
 
 namespace Yaof.Models;
+/// <summary>
+/// Represents content item.
+/// </summary>
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(HeaderItem), "header")]
@@ -11,5 +14,8 @@ namespace Yaof.Models;
 [JsonDerivedType(typeof(TableItem), "table")]
 public abstract record ContentItem
 {
+    /// <summary>
+    /// Gets the type.
+    /// </summary>
     public abstract string Type { get; }
 }

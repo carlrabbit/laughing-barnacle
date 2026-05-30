@@ -2,9 +2,21 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations.Builders;
 
 namespace EfCustomMigrations;
+/// <summary>
+/// Represents migration builder extensions.
+/// </summary>
 
 public static class MigrationBuilderExtensions
 {
+    /// <summary>
+    /// Performs the create sql user operation.
+    /// </summary>
+    /// <param name="migrationBuilder">The migration builder.</param>
+    /// <param name="userName">The user name.</param>
+    /// <param name="password">The password.</param>
+    /// <param name="passwordEnvironmentVariable">The password environment variable.</param>
+    /// <param name="ifNotExists">The if not exists.</param>
+    /// <returns>The operation result.</returns>
     public static OperationBuilder<CreateSqlUserOperation> CreateSqlUser(
         this MigrationBuilder migrationBuilder,
         string userName,
@@ -33,6 +45,17 @@ public static class MigrationBuilderExtensions
         migrationBuilder.Operations.Add(operation);
         return new OperationBuilder<CreateSqlUserOperation>(operation);
     }
+    /// <summary>
+    /// Performs the create sql login or role operation.
+    /// </summary>
+    /// <param name="migrationBuilder">The migration builder.</param>
+    /// <param name="principalName">The principal name.</param>
+    /// <param name="password">The password.</param>
+    /// <param name="passwordEnvironmentVariable">The password environment variable.</param>
+    /// <param name="defaultSchema">The default schema.</param>
+    /// <param name="memberOfRoles">The member of roles.</param>
+    /// <param name="ifNotExists">The if not exists.</param>
+    /// <returns>The operation result.</returns>
 
     public static OperationBuilder<CreateSqlLoginOrRoleOperation> CreateSqlLoginOrRole(
         this MigrationBuilder migrationBuilder,
@@ -66,6 +89,16 @@ public static class MigrationBuilderExtensions
         migrationBuilder.Operations.Add(operation);
         return new OperationBuilder<CreateSqlLoginOrRoleOperation>(operation);
     }
+    /// <summary>
+    /// Performs the grant schema or table privileges operation.
+    /// </summary>
+    /// <param name="migrationBuilder">The migration builder.</param>
+    /// <param name="principalName">The principal name.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="privileges">The privileges.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="withGrantOption">The with grant option.</param>
+    /// <returns>The operation result.</returns>
 
     public static OperationBuilder<GrantSchemaOrTablePrivilegesOperation> GrantSchemaOrTablePrivileges(
         this MigrationBuilder migrationBuilder,
@@ -97,6 +130,14 @@ public static class MigrationBuilderExtensions
         migrationBuilder.Operations.Add(operation);
         return new OperationBuilder<GrantSchemaOrTablePrivilegesOperation>(operation);
     }
+    /// <summary>
+    /// Performs the create schema with owner operation.
+    /// </summary>
+    /// <param name="migrationBuilder">The migration builder.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="ownerPrincipalName">The owner principal name.</param>
+    /// <param name="ifNotExists">The if not exists.</param>
+    /// <returns>The operation result.</returns>
 
     public static OperationBuilder<CreateSchemaWithOwnerOperation> CreateSchemaWithOwner(
         this MigrationBuilder migrationBuilder,
@@ -118,6 +159,13 @@ public static class MigrationBuilderExtensions
         migrationBuilder.Operations.Add(operation);
         return new OperationBuilder<CreateSchemaWithOwnerOperation>(operation);
     }
+    /// <summary>
+    /// Performs the seed idempotent sql operation.
+    /// </summary>
+    /// <param name="migrationBuilder">The migration builder.</param>
+    /// <param name="seedKey">The seed key.</param>
+    /// <param name="sql">The sql.</param>
+    /// <returns>The operation result.</returns>
 
     public static OperationBuilder<SeedIdempotentSqlOperation> SeedIdempotentSql(
         this MigrationBuilder migrationBuilder,
@@ -137,6 +185,13 @@ public static class MigrationBuilderExtensions
         migrationBuilder.Operations.Add(operation);
         return new OperationBuilder<SeedIdempotentSqlOperation>(operation);
     }
+    /// <summary>
+    /// Performs the set database option operation.
+    /// </summary>
+    /// <param name="migrationBuilder">The migration builder.</param>
+    /// <param name="optionName">The option name.</param>
+    /// <param name="optionValue">The option value.</param>
+    /// <returns>The operation result.</returns>
 
     public static OperationBuilder<SetDatabaseOptionOperation> SetDatabaseOption(
         this MigrationBuilder migrationBuilder,
@@ -156,6 +211,16 @@ public static class MigrationBuilderExtensions
         migrationBuilder.Operations.Add(operation);
         return new OperationBuilder<SetDatabaseOptionOperation>(operation);
     }
+    /// <summary>
+    /// Performs the set index storage parameter operation.
+    /// </summary>
+    /// <param name="migrationBuilder">The migration builder.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="indexName">The index name.</param>
+    /// <param name="parameterName">The parameter name.</param>
+    /// <param name="parameterValue">The parameter value.</param>
+    /// <returns>The operation result.</returns>
 
     public static OperationBuilder<SetIndexStorageParameterOperation> SetIndexStorageParameter(
         this MigrationBuilder migrationBuilder,

@@ -1,6 +1,9 @@
 using Kvstore;
 
 namespace Kvcli;
+/// <summary>
+/// Defines the contract for i write once kv client.
+/// </summary>
 
 public interface IWriteOnceKvClient
 {

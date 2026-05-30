@@ -1,14 +1,33 @@
 using Microsoft.EntityFrameworkCore;
 
 namespace Binstore;
+/// <summary>
+/// Represents bin store db context.
+/// </summary>
 
 public sealed class BinStoreDbContext(DbContextOptions<BinStoreDbContext> options) : DbContext(options)
 {
+    /// <summary>
+    /// Performs the operation operation.
+    /// </summary>
+    /// <returns>The operation result.</returns>
     public const int MaxKeyBytes = 4096;
+    /// <summary>
+    /// Performs the operation operation.
+    /// </summary>
+    /// <returns>The operation result.</returns>
 
     public DbSet<BinRecord> Bins => Set<BinRecord>();
+    /// <summary>
+    /// Performs the operation operation.
+    /// </summary>
+    /// <returns>The operation result.</returns>
 
     public DbSet<BinChunkRecord> Chunks => Set<BinChunkRecord>();
+    /// <summary>
+    /// Performs the on model creating operation.
+    /// </summary>
+    /// <param name="modelBuilder">The model builder.</param>
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

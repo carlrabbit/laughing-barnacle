@@ -25,4 +25,7 @@ app.MapRazorComponents<App>()
 
 app.Run();
 
+/// <summary>
+/// Represents the web application entry point used by integration tests.
+/// </summary>
 public partial class Program { }

@@ -66,10 +66,27 @@ public sealed class SchemaValidator
 /// <summary>The result of a JSON Schema validation.</summary>
 public record SchemaValidationResult
 {
+    /// <summary>
+    /// Gets a value indicating whether schema validation succeeded.
+    /// </summary>
     public bool IsValid { get; init; }
+
+    /// <summary>
+    /// Gets the validation error messages.
+    /// </summary>
     public IReadOnlyList<string> Errors { get; init; } = [];
 
+    /// <summary>
+    /// Creates a successful validation result.
+    /// </summary>
+    /// <returns>A successful <see cref="SchemaValidationResult"/>.</returns>
     public static SchemaValidationResult Success() => new() { IsValid = true };
+
+    /// <summary>
+    /// Creates a failed validation result.
+    /// </summary>
+    /// <param name="errors">The validation errors.</param>
+    /// <returns>A failed <see cref="SchemaValidationResult"/>.</returns>
     public static SchemaValidationResult Failure(IReadOnlyList<string> errors) =>
         new() { IsValid = false, Errors = errors };
 }

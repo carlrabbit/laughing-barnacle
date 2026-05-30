@@ -2,15 +2,34 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kvstore;
+/// <summary>
+/// Represents versioned key value store.
+/// </summary>
 
 public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersionedKeyValueStore
 {
+    /// <summary>
+    /// Performs the upsert string async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="expectedVersionId">The expected version id.</param>
+    /// <param name="value">The value.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
     public Task<VersionedUpsertResult> UpsertStringAsync(
         string key,
         string? expectedVersionId,
         string value,
         CancellationToken cancellationToken = default) =>
         UpsertCoreAsync(key, expectedVersionId, KvEntryKind.String, Encoding.UTF8.GetBytes(value), cancellationToken);
+    /// <summary>
+    /// Performs the upsert blob async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="expectedVersionId">The expected version id.</param>
+    /// <param name="value">The value.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public Task<VersionedUpsertResult> UpsertBlobAsync(
         string key,
@@ -36,6 +55,12 @@ public sealed class VersionedKeyValueStore(KvStoreDbContext dbContext) : IVersio
         await valueStream.CopyToAsync(memoryStream, cancellationToken);
         return await UpsertCoreAsync(key, expectedVersionId, KvEntryKind.Blob, memoryStream.ToArray(), cancellationToken);
     }
+    /// <summary>
+    /// Performs the get async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public async Task<KvReadResult?> GetAsync(string key, CancellationToken cancellationToken = default)
     {

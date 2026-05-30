@@ -1,4 +1,7 @@
 namespace Kvstore;
+/// <summary>
+/// Defines the contract for i write once key value store.
+/// </summary>
 
 public interface IWriteOnceKeyValueStore
 {

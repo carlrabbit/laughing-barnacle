@@ -2,14 +2,31 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kvstore;
+/// <summary>
+/// Represents write once key value store.
+/// </summary>
 
 public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteOnceKeyValueStore
 {
+    /// <summary>
+    /// Performs the store string async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="value">The value.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
     public Task<WriteOnceStoreResult> StoreStringAsync(
         string key,
         string value,
         CancellationToken cancellationToken = default) =>
         StoreCoreAsync(key, KvEntryKind.String, Encoding.UTF8.GetBytes(value), cancellationToken);
+    /// <summary>
+    /// Performs the store blob async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="value">The value.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public Task<WriteOnceStoreResult> StoreBlobAsync(
         string key,
@@ -33,6 +50,12 @@ public sealed class WriteOnceKeyValueStore(KvStoreDbContext dbContext) : IWriteO
         await valueStream.CopyToAsync(memoryStream, cancellationToken);
         return await StoreCoreAsync(key, KvEntryKind.Blob, memoryStream.ToArray(), cancellationToken);
     }
+    /// <summary>
+    /// Performs the get async operation.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The operation result.</returns>
 
     public async Task<KvReadResult?> GetAsync(string key, CancellationToken cancellationToken = default)
     {

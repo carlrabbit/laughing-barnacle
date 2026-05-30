@@ -1,4 +1,7 @@
 namespace Jsonstore;
+/// <summary>
+/// Defines values for json root type.
+/// </summary>
 
 public enum JsonRootType
 {
