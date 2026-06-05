@@ -1,7 +1,13 @@
 namespace LaughingBarnacle.Tests;
 
+/// <summary>
+/// Validates markdown table generation behavior for <see cref="JsonToMarkdownConverter"/>.
+/// </summary>
 public class JsonToMarkdownConverterTests
 {
+    /// <summary>
+    /// Verifies that converting a single JSON object array returns exactly one markdown table.
+    /// </summary>
     [Test]
     public async Task Convert_WithSingleObject_ReturnsOneTable()
     {
@@ -15,6 +21,9 @@ public class JsonToMarkdownConverterTests
         await Assert.That(result.Count).IsEqualTo(1);
     }
 
+    /// <summary>
+    /// Verifies that generated tables include the expected header row.
+    /// </summary>
     [Test]
     public async Task Convert_WithSingleObject_TableHasCorrectHeader()
     {
@@ -28,6 +37,9 @@ public class JsonToMarkdownConverterTests
         await Assert.That(table).StartsWith("|Property|Description|");
     }
 
+    /// <summary>
+    /// Verifies that generated tables include the markdown separator row.
+    /// </summary>
     [Test]
     public async Task Convert_WithSingleObject_TableHasSeparatorRow()
     {
@@ -41,6 +53,9 @@ public class JsonToMarkdownConverterTests
         await Assert.That(lines[1].Trim()).IsEqualTo("|---|---|");
     }
 
+    /// <summary>
+    /// Verifies that generated rows contain all object properties.
+    /// </summary>
     [Test]
     public async Task Convert_WithSingleObject_TableContainsPropertyRows()
     {
@@ -55,6 +70,9 @@ public class JsonToMarkdownConverterTests
         await Assert.That(table).Contains("|City|London|");
     }
 
+    /// <summary>
+    /// Verifies that each object in the input array produces its own markdown table.
+    /// </summary>
     [Test]
     public async Task Convert_WithMultipleObjects_ReturnsMultipleTables()
     {
@@ -68,6 +86,9 @@ public class JsonToMarkdownConverterTests
         await Assert.That(result.Count).IsEqualTo(2);
     }
 
+    /// <summary>
+    /// Verifies that an empty input array produces no tables.
+    /// </summary>
     [Test]
     public async Task Convert_WithEmptyArray_ReturnsNoTables()
     {
@@ -81,6 +102,9 @@ public class JsonToMarkdownConverterTests
         await Assert.That(result).IsEmpty();
     }
 
+    /// <summary>
+    /// Verifies that non-array JSON input is rejected.
+    /// </summary>
     [Test]
     public async Task Convert_WithNonArrayJson_ThrowsArgumentException()
     {
@@ -92,6 +116,9 @@ public class JsonToMarkdownConverterTests
             .Throws<ArgumentException>();
     }
 
+    /// <summary>
+    /// Verifies that empty string property values render as empty markdown table cells.
+    /// </summary>
     [Test]
     public async Task Convert_WithEmptyStringValue_RendersEmptyCell()
     {
